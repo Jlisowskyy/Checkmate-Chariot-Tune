@@ -1,13 +1,13 @@
 from fastapi import APIRouter, WebSocket
 from .WorkerModels import *
+from .GlobalModels import *
 
 router = APIRouter()
 
 
-@router.get("/worker/get-test", tags=["worker"])
-async def get_test():
-    return {"message": "Hello World"}
-
+@router.pos("/worker/register", tags=["worker"])
+async def register(worker: WorkerModel) -> CommandResult:
+    return CommandResult(result=0)
 
 @router.websocket("/worker/perform-test")
 async def websocket_endpoint(websocket: WebSocket):

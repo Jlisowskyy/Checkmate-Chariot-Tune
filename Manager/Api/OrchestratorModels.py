@@ -13,11 +13,6 @@ class TestDescription(BaseModel):
     commit: str
     passwordHash: str
 
-
-class CommandResult(BaseModel):
-    resultCode: int
-
-
 class AuthInfo(BaseModel):
     passwordHash: str
 
@@ -35,3 +30,13 @@ class TestAccessInfo(BaseModel):
 class TestResults(BaseModel):
     result: CommandResult
     parameters: list[int]
+
+
+class File(BaseModel):
+    name: str
+    content: str
+
+
+class Backup(BaseModel):
+    result: CommandResult
+    backup: list[File]

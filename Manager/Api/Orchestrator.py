@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from .OrchestratorModels import *
+from .GlobalModels import *
 
 router = APIRouter()
 
@@ -20,20 +21,20 @@ async def get_results(test_access: TestAccessInfo) -> TestResults:
 
 
 @router.get("/orchestrator/get-backup", tags=["orchestrator"])
-async def get_backup():
-    return {"message": "Hello World"}
+async def get_backup(test_access: TestAccessInfo) -> Backup:
+    return Backup(result=CommandResult(resultCode=0), tests=[])
 
 
 @router.delete("/orchestrator/delete-test", tags=["orchestrator"])
-async def delete_test():
-    return {"message": "Hello World"}
+async def delete_test(test_access: TestAccessInfo) -> CommandResult:
+    return CommandResult(resultCode=0)
 
 
 @router.post("/orchestrator/stop-test", tags=["orchestrator"])
-async def stop_test():
-    return {"message": "Hello World"}
+async def stop_test(test_access: TestAccessInfo) -> CommandResult:
+    return CommandResult(resultCode=0)
 
 
 @router.post("/orchestrator/start-test", tags=["orchestrator"])
-async def start_test():
-    return {"message": "Hello World"}
+async def start_test(test_access: TestAccessInfo) -> CommandResult:
+    return CommandResult(resultCode=0)
