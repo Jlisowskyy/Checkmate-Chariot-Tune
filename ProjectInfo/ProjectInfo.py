@@ -2,16 +2,23 @@ import json
 import os
 from enum import Enum
 
-VERSIONS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/versions.json"
+FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+VERSIONS_PATH = f"{FILE_PATH}/versions.json"
+BUILD_DATA_PATH = f"{FILE_PATH}/build_data.json"
 
 
 class ProjectInfo:
     _version_table: list[str]
+    _build_data: {str: str}
 
     def __init__(self):
         with open(VERSIONS_PATH, "r") as f:
             obj = json.load(f)
         self._version_table = obj["versions"]
+
+        with open(BUILD_DATA_PATH, "r") as f:
+            obj = json.load(f)
+        self._build_data = obj
 
     def get_current_version_desc(self) -> str:
         return self._version_table[-1]
@@ -42,3 +49,11 @@ class ProjectInfo:
               f"Description: Distributed framework used to tune parameters for Checkmate-Chariot chess engine\n"
               f"Component: {component}\n"
               f"Version: {self.get_current_version_desc()}\n")
+
+    def get_build_config(self, opt_name: str) -> str:
+        if opt_name not in self._build_data:
+            raise Exception(f"Build config with name: {opt_name} not found!")
+        return self._build_data[opt_name]
+
+
+ProjectInfoInstance = ProjectInfo()
