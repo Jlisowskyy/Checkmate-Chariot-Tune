@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from .GlobalModels import *
 
 class TuneParameter(BaseModel):
     name: str
@@ -12,6 +12,7 @@ class TestDescription(BaseModel):
     parameters: list[TuneParameter]
     commit: str
     passwordHash: str
+
 
 class AuthInfo(BaseModel):
     passwordHash: str

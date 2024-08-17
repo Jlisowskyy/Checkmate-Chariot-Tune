@@ -5,7 +5,7 @@ from .GlobalModels import *
 router = APIRouter()
 
 
-@router.pos("/worker/register", tags=["worker"])
+@router.post("/worker/register", tags=["worker"])
 async def register(worker: WorkerModel) -> CommandResult:
     return CommandResult(result=0)
 
