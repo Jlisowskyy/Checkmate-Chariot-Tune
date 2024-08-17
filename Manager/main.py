@@ -5,6 +5,7 @@ import sys
 from .Api import Orchestrator, Worker
 from .ManagerLib import TestJobMgr, TestTaskMgr, WorkerMgr
 from .ManagerLib import SettingsLoader
+from .ProjectInfo import ProjectInfo as Info
 
 # load settings
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
@@ -19,3 +20,5 @@ TestJobMgr.TestJobMgr(settings.mgr_num_workers)
 Manager = FastAPI()
 Manager.include_router(Orchestrator.router)
 Manager.include_router(Worker.router)
+
+Info.ProjectInfo().display_info("Manager")

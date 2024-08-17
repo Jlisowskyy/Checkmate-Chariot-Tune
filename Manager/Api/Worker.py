@@ -7,7 +7,7 @@ router = APIRouter()
 
 @router.post("/worker/register", tags=["worker"])
 async def register(worker: WorkerModel) -> CommandResult:
-    return CommandResult(result=0)
+    return CommandResult(result="")
 
 @router.websocket("/worker/perform-test")
 async def websocket_endpoint(websocket: WebSocket):
