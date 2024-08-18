@@ -5,6 +5,7 @@ from threading import Lock, Thread
 from typing import TextIO
 from datetime import datetime
 from enum import IntEnum
+import os
 
 
 class LogLevel(IntEnum):
@@ -37,9 +38,15 @@ class Logger(metaclass=GlobalObj):
         self._io_flusher = Thread(target=self._io_flusher_thread)
         self._io_flusher.start()
 
+        self.log_info("Logger started", LogLevel.LOW_FREQ)
+
     def destroy(self):
         self._should_flush = False
         self._io_flusher.join()
+
+        self.log_info("Logger destroyed", LogLevel.LOW_FREQ)
+        self._log_file.flush()
+        self._log_file.close()
 
     @staticmethod
     def wrap_log(msg: str) -> str:
@@ -76,3 +83,4 @@ class Logger(metaclass=GlobalObj):
 
             with self._lock:
                 self._log_file.flush()
+                os.fsync(self._log_file.fileno())

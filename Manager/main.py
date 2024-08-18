@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from .Api import Orchestrator, Worker
 from .ManagerLib.main import startup, cleanup
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Process starting actions
@@ -12,6 +13,7 @@ async def lifespan(app: FastAPI):
 
     # Process stopping actions
     cleanup()
+
 
 # init api:
 Manager = FastAPI(lifespan=lifespan)

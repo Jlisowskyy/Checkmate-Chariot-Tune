@@ -12,6 +12,7 @@ class Settings(BaseModel):
     logger_path: str = "./log.txt"
     log_std_out: bool = False
     log_level: int = LogLevel.MEDIUM_FREQ
+    worker_timeout: int = 10
 
 
 class SettingsLoader(metaclass=GlobalObj):
