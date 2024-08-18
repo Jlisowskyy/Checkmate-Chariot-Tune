@@ -1,24 +1,45 @@
+import time
+
 from .GlobalObj import GlobalObj
-from threading import Lock
+from threading import Lock, Thread
 from typing import TextIO
 from datetime import datetime
+from enum import IntEnum
+
+
+class LogLevel(IntEnum):
+    LOW_FREQ = 0
+    MEDIUM_FREQ = 1
+    HIGH_FREQ = 2
 
 
 class Logger(metaclass=GlobalObj):
     _log_stdout: bool
     _log_file_name: str
     _log_file: TextIO
+    _log_level: LogLevel
     _lock: Lock
+    _io_flusher: Thread
+    _should_flush: bool
 
-    def __init__(self, path: str, shouldLogStdIn: bool):
+    def __init__(self, path: str, shouldLogStdIn: bool, logLevel: LogLevel):
         self._log_stdout = shouldLogStdIn
         self._log_file_name = path
         self._lock = Lock()
+        self._log_level = logLevel
 
         try:
             self._log_file = open(self._log_file_name, 'a')
         except Exception as e:
             raise Exception(f"Logger must be able to start to proceed further. Logger fail cause: {e}")
+
+        self._should_flush = True
+        self._io_flusher = Thread(target=self._io_flusher_thread)
+        self._io_flusher.start()
+
+    def destroy(self):
+        self._should_flush = False
+        self._io_flusher.join()
 
     @staticmethod
     def wrap_log(msg: str) -> str:
@@ -33,15 +54,25 @@ class Logger(metaclass=GlobalObj):
     def wrap_error(msg: str) -> str:
         return Logger.wrap_log(f"[ ERROR ] {msg}")
 
-    def log(self, msg: str) -> None:
+    def log(self, msg: str, log_level: LogLevel) -> None:
+        if log_level > self._log_level:
+            return
+
         if self._log_stdout:
             print(msg)
 
         with self._lock:
-            self._log_file.write(msg)
+            self._log_file.write(f"{msg}\n")
 
-    def log_info(self, msg: str) -> None:
-        self.log(Logger.wrap_info(msg))
+    def log_info(self, msg: str, log_level: LogLevel) -> None:
+        self.log(Logger.wrap_info(msg), log_level)
 
-    def log_error(self, msg: str) -> None:
-        self.log(Logger.wrap_error(msg))
+    def log_error(self, msg: str, log_level: LogLevel) -> None:
+        self.log(Logger.wrap_error(msg), log_level)
+
+    def _io_flusher_thread(self):
+        while self._should_flush:
+            time.sleep(0.01)
+
+            with self._lock:
+                self._log_file.flush()

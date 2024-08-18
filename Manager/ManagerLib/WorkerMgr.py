@@ -1,6 +1,7 @@
 from .GlobalObj import GlobalObj
 from ..ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ..Api.WorkerModels import WorkerModel
+from .Logger import Logger, LogLevel
 
 from threading import Thread
 import time
@@ -18,10 +19,11 @@ class WorkerMgr(metaclass=GlobalObj):
         self._workers = []
 
         self._workersAuditor = Thread(target=self.worker_audit_thread)
+        self._workersAuditor.start()
 
-    def __del__(self):
+        Logger.get_instance().log_info("WorkerMgr created", LogLevel.LOW_FREQ)
 
-
+    def destroy(self):
         self._shouldWork = False
         self._workersAuditor.join()
 
@@ -29,3 +31,5 @@ class WorkerMgr(metaclass=GlobalObj):
         while self._shouldWork:
             print("ELO")
             time.sleep(5)
+
+        Logger.get_instance().log_info("WorkerMgr Audit thread stopped", LogLevel.LOW_FREQ)

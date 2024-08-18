@@ -1,24 +1,19 @@
 from fastapi import FastAPI
-import os
-import sys
+from contextlib import asynccontextmanager
 
 from .Api import Orchestrator, Worker
-from .ManagerLib import TestJobMgr, TestTaskMgr, WorkerMgr
-from .ManagerLib import SettingsLoader
-from .ProjectInfo.ProjectInfo import ProjectInfoInstance
+from .ManagerLib.main import startup, cleanup
 
-# load settings
-SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
-settings = SettingsLoader.SettingsLoader(SETTINGS_PATH).get_settings()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Process starting actions
+    startup()
+    yield
 
-# init singleton managers:
-WorkerMgr.WorkerMgr()
-TestTaskMgr.TestTaskMgr(settings.mgr_num_workers)
-TestJobMgr.TestJobMgr(settings.mgr_num_workers)
+    # Process stopping actions
+    cleanup()
 
 # init api:
-Manager = FastAPI()
+Manager = FastAPI(lifespan=lifespan)
 Manager.include_router(Orchestrator.router)
 Manager.include_router(Worker.router)
-
-ProjectInfoInstance.display_info("Manager")

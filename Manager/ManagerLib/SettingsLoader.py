@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from .GlobalObj import GlobalObj
+from .Logger import LogLevel
 import os
 import json
 import dataclasses
@@ -8,6 +9,9 @@ import sys
 
 class Settings(BaseModel):
     mgr_num_workers: int = 4
+    logger_path: str = "./log.txt"
+    log_std_out: bool = False
+    log_level: int = LogLevel.MEDIUM_FREQ
 
 
 class SettingsLoader(metaclass=GlobalObj):
@@ -17,6 +21,7 @@ class SettingsLoader(metaclass=GlobalObj):
         try:
             if os.path.exists(path):
                 self._settings = SettingsLoader.parse_settings(path)
+                self.save_settings(path)
             else:
                 self._settings = Settings()
                 self.save_settings(path)
