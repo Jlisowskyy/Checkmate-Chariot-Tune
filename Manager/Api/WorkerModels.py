@@ -11,4 +11,9 @@ class WorkerModel(BaseModel):
 
 class WorkerRegistration(BaseModel):
     result: CommandResult
-    session_token: str
+    session_token: int
+
+
+class WorkerUnregister(BaseModel):
+    name: str
+    session_token: int

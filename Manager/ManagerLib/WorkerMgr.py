@@ -1,6 +1,6 @@
 from .GlobalObj import GlobalObj
 from ..ProjectInfo.ProjectInfo import ProjectInfoInstance
-from ..Api.WorkerModels import WorkerModel
+from ..Api.WorkerModels import WorkerModel, WorkerUnregister
 from .Logger import Logger, LogLevel
 from .SettingsLoader import SettingsLoader
 from .ErrorTable import ErrorTable
@@ -61,7 +61,7 @@ class WorkerMgr(metaclass=GlobalObj):
 
         Logger().log_info("WorkerMgr created", LogLevel.LOW_FREQ)
 
-    def register(self, worker: WorkerModel) -> [int, int]:
+    def register(self, worker: WorkerModel) -> [ErrorTable, int]:
         with self._workers_queue_lock:
             if worker_name in self._workers_queue:
                 return [ErrorTable.WORKER_ALREADY_REGISTERED, 0]
@@ -73,6 +73,27 @@ class WorkerMgr(metaclass=GlobalObj):
                 token = self._register_worker_unlocked(worker)
 
         return [ErrorTable.SUCCESS, token]
+
+    def unregister(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
+        with self._workers_queue_lock:
+            if worker_name in self._workers_queue:
+                self._move_workers()  # Apply early queue processing
+
+        user_found = False
+        with self._workers_name_lookup_lock:
+            user_found = (worker_name in self._workers)
+
+        if user_found:
+            with self._workers_lock:
+                with self._workers_name_lookup_lock:
+                    return self.unregister_unlocked(unregister_request)
+        return ErrorTable.WORKER_NOT_FOUND
+
+    def unregister_unlocked(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
+        if self._workers[unregister_request.name].token == unregister_request.token:
+            del self._workers[unregister_request.name]
+            return ErrorTable.SUCCESS
+        return ErrorTable.INVALID_TOKEN
 
     def destroy(self) -> None:
         self._shouldWork = False
@@ -104,8 +125,8 @@ class WorkerMgr(metaclass=GlobalObj):
                         self.timeout_worker(worker, inactivity)
 
     def _move_workers(self) -> None:
-        while not self._workers_queue.empty():
-            with self._workers_queue_lock:
+        with self._workers_queue_lock:
+            while not self._workers_queue.empty():
                 worker = self._workers_queue.get()
                 with self._workers_lock:
                     with self._workers_name_lookup_lock:
