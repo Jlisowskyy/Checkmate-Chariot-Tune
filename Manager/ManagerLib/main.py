@@ -2,11 +2,10 @@ from .TestJobMgr import TestJobMgr
 from .TestTaskMgr import TestTaskMgr
 from .WorkerMgr import WorkerMgr
 from .SettingsLoader import SettingsLoader
-from ..ProjectInfo.ProjectInfo import ProjectInfoInstance
-from .Logger import Logger, LogLevel
+from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
+from ...Utils.Logger import Logger, LogLevel
 
 import os
-import sys
 
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 

@@ -1,9 +1,7 @@
 from fastapi import APIRouter, WebSocket
-from .WorkerModels import *
-from .GlobalModels import *
-from ..ManagerLib.ErrorTable import ErrorTable
-
-# from ..ManagerLib.WorkerMgr import WorkerMgr
+from ...Models.WorkerModels import *
+from ...Models.GlobalModels import *
+from ..ManagerLib.WorkerMgr import WorkerMgr
 
 router = APIRouter()
 

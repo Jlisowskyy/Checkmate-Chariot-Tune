@@ -3,7 +3,6 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 cd "$SCRIPT_DIR" || exit 1
 
-# prepare env
-python -m venv ../.venv
-source ../.venv/bin/activate
-pip install -r requirements.txt
+rm -rf ./ProjectInfo
+rm -rf ./Utils
+rm -rf ./Models

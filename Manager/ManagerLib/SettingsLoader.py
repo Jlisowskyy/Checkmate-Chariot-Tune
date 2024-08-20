@@ -1,10 +1,7 @@
 from pydantic import BaseModel
-from .GlobalObj import GlobalObj
-from .Logger import LogLevel
+from ...Utils.GlobalObj import GlobalObj
+from ...Utils.Logger import LogLevel
 import os
-import json
-import dataclasses
-import sys
 
 
 class Settings(BaseModel):

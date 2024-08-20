@@ -1,4 +1,4 @@
-from .GlobalObj import GlobalObj
+from ...Utils.GlobalObj import GlobalObj
 
 
 class TestJobMgr(metaclass=GlobalObj):

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from .GlobalModels import *
 
+
 class TuneParameter(BaseModel):
     name: str
     min: int
