@@ -7,3 +7,6 @@ __pycache__
 *.json
 */ProjectInfo
 */log.txt
+Worker/Utils
+Worker/ProjectInfo
+Worker/Models

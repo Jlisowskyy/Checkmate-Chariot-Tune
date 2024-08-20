@@ -39,7 +39,7 @@ class WorkerMgr(metaclass=GlobalObj):
     _workers_lock: Lock
     _workers_queue_lock: Lock
     _workers_name_lookup_lock: Lock
-    _workers_queue: Queue[Worker]
+    _workers_queue: list[Worker]
 
     _worker_timeout: int
 
@@ -50,7 +50,7 @@ class WorkerMgr(metaclass=GlobalObj):
         self._workers_lock = Lock()
         self._workers_queue_lock = Lock()
         self._workers_name_lookup_lock = Lock()
-        self._workers_queue = Queue[Worker]()
+        self._workers_queue = list[Worker]()
 
         settings = SettingsLoader().get_settings()
         self._worker_timeout = settings.worker_timeout
@@ -62,11 +62,11 @@ class WorkerMgr(metaclass=GlobalObj):
 
     def register(self, worker: WorkerModel) -> [ErrorTable, int]:
         with self._workers_queue_lock:
-            if worker_name in self._workers_queue:
+            if worker.name in self._workers_queue:
                 return [ErrorTable.WORKER_ALREADY_REGISTERED, 0]
 
             with self._workers_name_lookup_lock:
-                if worker_name in self._workers.keys():
+                if worker.name in self._workers.keys():
                     return [ErrorTable.WORKER_ALREADY_REGISTERED, 0]
 
                 token = self._register_worker_unlocked(worker)
@@ -75,12 +75,12 @@ class WorkerMgr(metaclass=GlobalObj):
 
     def unregister(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
         with self._workers_queue_lock:
-            if worker_name in self._workers_queue:
+            if unregister_request.name in self._workers_queue:
                 self._move_workers()  # Apply early queue processing
 
         user_found = False
         with self._workers_name_lookup_lock:
-            user_found = (worker_name in self._workers)
+            user_found = (unregister_request.name in self._workers)
 
         if user_found:
             with self._workers_lock:
@@ -102,7 +102,7 @@ class WorkerMgr(metaclass=GlobalObj):
 
     def _register_worker_unlocked(self, worker_model: WorkerModel) -> int:
         worker = Worker(worker_model)
-        self._workers_queue.put(worker)
+        self._workers_queue.append(worker)
 
         Logger().log_info(f"Registered worker with name: {worker_model.name} and session token: {worker.token}",
                           LogLevel.MEDIUM_FREQ)
@@ -118,15 +118,15 @@ class WorkerMgr(metaclass=GlobalObj):
             for worker in list(self._workers.keys()):
                 with self._workers_name_lookup_lock:
                     time_now = time.perf_counter()
-                    inactivity = time_now - self._workers[worker].start_time
+                    inactivity = time_now - self._workers[worker].activity_timestamp
 
                     if inactivity > self._worker_timeout:
-                        self.timeout_worker(worker, inactivity)
+                        self._timeout_worker(worker, inactivity)
 
     def _move_workers(self) -> None:
         with self._workers_queue_lock:
-            while not self._workers_queue.empty():
-                worker = self._workers_queue.get()
+            while len(self._workers_queue) != 0:
+                worker = self._workers_queue.pop()
                 with self._workers_lock:
                     with self._workers_name_lookup_lock:
                         self._workers[worker.model.name] = worker
