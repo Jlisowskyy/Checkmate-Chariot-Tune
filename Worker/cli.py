@@ -10,14 +10,16 @@ class CliTranslator:
     def __init__(self):
         pass
 
-    def parse_args(self, args: list[str]) -> None:
+    def parse_args(self, args: list[str]):
         try:
             self._parse_args_internal(args)
         except Exception as e:
-            print(f"[ ERROR ] During argument parsing error occurred: {e}")
+            print(f"[ ERROR ] During argument parsing error occurred:\n\t{e}")
 
-    def parse_stdin(self) -> None:
-        pass
+        return self
+
+    def parse_stdin(self):
+        return self
 
     def _parse_args_internal(self, args: list[str]) -> None:
         index = 1
@@ -37,7 +39,17 @@ class CliTranslator:
             raise Exception(f"Command \"{command}\" not supported")
 
         cli_cmd = self.COMMANDS[command]
-        return cli_cmd(self, index + 1)
+
+        try:
+            return cli_cmd(self, index + 1)
+        except Exception as e:
+            self._display_help(command)
+            raise Exception(f"Command execution: \"{command}\", failed by reason:\n\t\t{e}")
+
+    def _display_help(self, command: str) -> None:
+        if command in self.COMMAND_HELP:
+            print("Providing command description:")
+            self.COMMAND_HELP[command]()
 
     @staticmethod
     def _is_command(arg: str) -> bool:
@@ -106,8 +118,26 @@ class CliTranslator:
 
         return index
 
+    @staticmethod
+    def _connect_help() -> None:
+        help_str = ("command syntax: --connect \"key1=value1\" \"key2=value2\" ...\n"
+                    "Mandatory options:\n"
+                    "\thost - defines url to the Manager endpoint\n"
+                    "\tname - definition of name for the worker instance\n"
+                    "Not mandatory options:\n"
+                    "\tcpus - number of CPU cores to use - default = 1\n"
+                    "\tmemoryMB - amount of memory to use - default = 128")
+        print(help_str)
+
+    def _log_level(self, index: int) -> int:
+        pass
+
     COMMANDS = {
         "help": _help,
         "version": _version,
         "connect": _connect,
+    }
+
+    COMMAND_HELP = {
+        "connect": _connect_help
     }

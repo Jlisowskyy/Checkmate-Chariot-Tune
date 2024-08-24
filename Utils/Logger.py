@@ -48,6 +48,9 @@ class Logger(metaclass=GlobalObj):
         self._log_file.flush()
         self._log_file.close()
 
+    def set_log_level(self, log_level: LogLevel) -> None:
+        self._log_level = log_level
+
     @staticmethod
     def wrap_log(msg: str) -> str:
         date_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
