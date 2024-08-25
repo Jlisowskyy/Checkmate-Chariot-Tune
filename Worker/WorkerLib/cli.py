@@ -1,14 +1,28 @@
 from ProjectInfo.ProjectInfo import ProjectInfoInstance
-
-import requests
-from Models.WorkerModels import WorkerModel
+from Models.WorkerModels import WorkerModel, WorkerRegistration
+from Models.GlobalModels import CommandResult
+from Utils.Logger import Logger, LogLevel
+from .WorkerInstance import WorkerInstance
+from Utils.SettingsLoader import SettingsLoader
 
 
 class CliTranslator:
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
     _args: list[str]
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
     def __init__(self):
         pass
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
 
     def parse_args(self, args: list[str]):
         try:
@@ -21,12 +35,40 @@ class CliTranslator:
     def parse_stdin(self):
         return self
 
+    # ------------------------------
+    # Private methods
+    # ------------------------------
+
+    def _set_log_level(self, index: int) -> int:
+        if index >= len(self._args):
+            raise Exception("LEVEL should bo provided")
+
+        level = self._args[index]
+
+        try:
+            level = LogLevel[level]
+        except Exception as e:
+            raise Exception("Provided wrong log level")
+
+        return index + 1
+
+    @staticmethod
+    def _set_log_level_help():
+        print("syntax: --set_log_level LEVEL\n\t"
+              "Changes log level of logger\n\t"
+              "Available log levels:\n\t"
+              "LOW\n\t"
+              "MEDIUM\n\t"
+              "HIGH")
+
     def _parse_args_internal(self, args: list[str]) -> None:
         index = 1
         self._args = args
 
         while index < len(args):
             index = self._execute_command(index)
+
+        Logger().log_info("Finished parsing arguments", LogLevel.LOW_FREQ)
 
     def _execute_command(self, index: int) -> int:
         command = self._args[index].strip()
@@ -41,6 +83,7 @@ class CliTranslator:
         cli_cmd = self.COMMANDS[command]
 
         try:
+            Logger().log_info(f"Finished parsing command: {command} as argument", LogLevel.MEDIUM_FREQ)
             return cli_cmd(self, index + 1)
         except Exception as e:
             self._display_help(command)
@@ -83,15 +126,37 @@ class CliTranslator:
         return options[option]
 
     def _help(self, index: int) -> int:
-        print("HELP COMMAND")
-        return index
+        if index < len(self._args) and not CliTranslator._is_command(self._args[index]):
+            command = self._args[index].strip()
+            if command not in self.COMMAND_HELP:
+                raise Exception(f"Help for command \"{command}\" not supported")
+            self.COMMAND_HELP[command]()
+            return index + 1
+        else:
+            print("Available commands:")
+            for command in self.COMMANDS.keys():
+                print(f"\t{command}")
+            print("Type \"--help COMMAND_NAME\" to get more details on the command")
+            return index
+
+    @staticmethod
+    def _help_help() -> None:
+        print("syntax: --help COMMAND_NAME\n\tDisplay detailed help for the given command"
+              "--help\n\t to display list of available commands")
 
     def _version(self, index: int) -> int:
         ProjectInfoInstance.display_info("Worker")
         return index
 
+    @staticmethod
+    def _version_help() -> None:
+        print("syntax: --version\n\tDisplay the version of the Worker")
+
     def _connect(self, index: int) -> int:
         [index, options] = self._parse_options(index)
+
+        if WorkerInstance().is_registered():
+            raise Exception("Worker is already registered to manager")
 
         host = CliTranslator._extract_option_guarded(options, "host")
         name = CliTranslator._extract_option_guarded(options, "name")
@@ -108,13 +173,13 @@ class CliTranslator:
 
         model = WorkerModel(name=name, cpus=cpus, memoryMB=memory_mb, version=version)
         url = f"{host}/worker/register"
-        headers = {
-            "Content-Type": "application/json",
-        }
+        response = WorkerInstance.send_request(url, model)
 
-        response = requests.post(url, json=model.model_dump(), headers=headers)
+        Logger().log_info(f"Received registration response: {response.json()}", LogLevel.LOW_FREQ)
 
-        print(response.json())
+        WorkerInstance().register(host, model, WorkerRegistration.model_validate_json(response.json()))
+
+        Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
 
         return index
 
@@ -129,15 +194,42 @@ class CliTranslator:
                     "\tmemoryMB - amount of memory to use - default = 128")
         print(help_str)
 
-    def _log_level(self, index: int) -> int:
-        pass
+    def _disconnect(self) -> None:
+        retries = SettingsLoader().get_settings().unregister_retries
+
+        if not WorkerInstance().is_registered():
+            raise Exception("Worker is not registered to any manager")
+
+        request = WorkerInstance().prepare_unregister_request()
+        WorkerInstance().unregister()
+
+        while retries > 0:
+            try:
+                response = WorkerInstance.send_request(WorkerInstance().get_connected_host(), request)
+                WorkerInstance().validate_unregister_response(CommandResult.model_validate_json(response.json()))
+                return
+            except Exception as e:
+                Logger().log_info(f"Disconnect request failed, remaining retries: {retries - 1}, error trace: {e}",
+                                  LogLevel.MEDIUM_FREQ)
+
+            retries -= 1
+
+    @staticmethod
+    def _disconnect_help() -> None:
+        print("syntax: --disconnect\n\tCommand disconnect worker from the Manager node, stopping all ongoing jobs")
 
     COMMANDS = {
         "help": _help,
         "version": _version,
         "connect": _connect,
+        "disconnect": _disconnect,
+        "set_log_level": _set_log_level,
     }
 
     COMMAND_HELP = {
-        "connect": _connect_help
+        "connect": _connect_help,
+        "version": _version_help,
+        "help": _help_help,
+        "disconnect": _disconnect_help,
+        "set_log_level": _set_log_level_help,
     }

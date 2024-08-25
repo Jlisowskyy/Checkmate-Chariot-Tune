@@ -15,6 +15,10 @@ class LogLevel(IntEnum):
 
 
 class Logger(metaclass=GlobalObj):
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
     _log_stdout: bool
     _log_file_name: str
     _log_file: TextIO
@@ -22,6 +26,10 @@ class Logger(metaclass=GlobalObj):
     _lock: Lock
     _io_flusher: Thread
     _should_flush: bool
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
     def __init__(self, path: str, shouldLogStdIn: bool, logLevel: LogLevel):
         self._log_stdout = shouldLogStdIn
@@ -39,6 +47,10 @@ class Logger(metaclass=GlobalObj):
         self._io_flusher.start()
 
         self.log_info("Logger started", LogLevel.LOW_FREQ)
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
 
     def destroy(self):
         self._should_flush = False
@@ -79,6 +91,10 @@ class Logger(metaclass=GlobalObj):
 
     def log_error(self, msg: str, log_level: LogLevel) -> None:
         self.log(Logger.wrap_error(msg), log_level)
+
+    # ------------------------------
+    # Private methods
+    # ------------------------------
 
     def _io_flusher_thread(self):
         while self._should_flush:

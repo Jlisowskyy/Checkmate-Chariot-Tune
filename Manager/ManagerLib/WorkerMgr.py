@@ -2,23 +2,30 @@ from ...Utils.GlobalObj import GlobalObj
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Models.WorkerModels import WorkerModel, WorkerUnregister
 from ...Utils.Logger import Logger, LogLevel
-from .SettingsLoader import SettingsLoader
+from ...Utils.SettingsLoader import SettingsLoader
 from .ErrorTable import ErrorTable
 
 from threading import Thread, Lock
 import time
-from queue import Queue
 import secrets
 
 MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_build_config("MIN_WORKER_VERSION"))
 
 
 class Worker:
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
     _instance_count: int = 0
 
     model: WorkerModel
     activity_timestamp: float
     token: int
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
     def __init__(self, model: WorkerModel):
         self.model = model
@@ -31,6 +38,10 @@ class Worker:
 
 
 class WorkerMgr(metaclass=GlobalObj):
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
     _workers: dict[str, Worker]
 
     _workersAuditor: Thread
@@ -42,6 +53,10 @@ class WorkerMgr(metaclass=GlobalObj):
     _workers_queue: list[Worker]
 
     _worker_timeout: int
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
     def __init__(self):
         self._shouldWork = True
@@ -59,6 +74,10 @@ class WorkerMgr(metaclass=GlobalObj):
         self._workersAuditor.start()
 
         Logger().log_info("WorkerMgr created", LogLevel.LOW_FREQ)
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
 
     def register(self, worker: WorkerModel) -> [ErrorTable, int]:
         with self._workers_queue_lock:
@@ -99,6 +118,10 @@ class WorkerMgr(metaclass=GlobalObj):
         self._workersAuditor.join()
 
         Logger().log_info("WorkerMgr destroyed", LogLevel.LOW_FREQ)
+
+    # ------------------------------
+    # Private methods
+    # ------------------------------
 
     def _register_worker_unlocked(self, worker_model: WorkerModel) -> int:
         worker = Worker(worker_model)

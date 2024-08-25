@@ -1,9 +1,10 @@
 from .TestJobMgr import TestJobMgr
 from .TestTaskMgr import TestTaskMgr
 from .WorkerMgr import WorkerMgr
-from .SettingsLoader import SettingsLoader
+from ...Utils.SettingsLoader import SettingsLoader
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Utils.Logger import Logger, LogLevel
+from .ManagerSettings import ManagerSettings
 
 import os
 
@@ -12,7 +13,7 @@ SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
 def startup():
     # load settings
-    settings = SettingsLoader(SETTINGS_PATH).get_settings()
+    settings = SettingsLoader(ManagerSettings, SETTINGS_PATH).get_settings()
 
     # init logger
     Logger(settings.logger_path, settings.log_std_out, LogLevel(settings.log_level))

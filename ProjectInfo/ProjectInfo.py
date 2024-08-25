@@ -8,8 +8,16 @@ BUILD_DATA_PATH = f"{FILE_PATH}/build_data.json"
 
 
 class ProjectInfo:
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
     _version_table: list[str]
     _build_data: {str: str}
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
     def __init__(self):
         with open(VERSIONS_PATH, "r") as f:
@@ -19,6 +27,10 @@ class ProjectInfo:
         with open(BUILD_DATA_PATH, "r") as f:
             obj = json.load(f)
         self._build_data = obj
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
 
     def get_current_version_desc(self) -> str:
         return self._version_table[-1]
