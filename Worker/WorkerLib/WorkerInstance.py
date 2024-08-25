@@ -2,11 +2,12 @@ from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerMode
 from Models.GlobalModels import CommandResult
 from pydantic import BaseModel
 from Utils.Logger import Logger, LogLevel
+from typing import Callable
 
 import requests
 
 
-class WorkerInstance():
+class WorkerInstance:
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -35,6 +36,8 @@ class WorkerInstance():
         return self._session_token is not None
 
     def register(self, host: str, register_request: WorkerModel, register_response: WorkerRegistration) -> None:
+        WorkerInstance.validate_response(register_response.result)
+
         self._session_token = register_response.session_token
         self._session_host = host
         self._session_model = register_request
@@ -55,20 +58,26 @@ class WorkerInstance():
         if not self.is_registered():
             raise Exception("Worker is not registered!")
 
-        return WorkerUnregister(name=self._session_model.name, token=self._session_token)
-
-    def validate_unregister_response(self, result: CommandResult) -> None:
-        pass
+        return WorkerUnregister(name=self._session_model.name, session_token=self._session_token)
 
     @staticmethod
-    def send_request(url: str, model: BaseModel) -> requests.Response:
+    def validate_response(result: CommandResult) -> None:
+        if result.result != "SUCCESS":
+            raise Exception(f"Failed on Manager end-point with error: {result.result}")
+
+    @staticmethod
+    def send_request(command_type, url: str, model: BaseModel) -> requests.Response:
         headers = {
             "Content-Type": "application/json",
         }
 
-        Logger().log_info(f"Sending register request to {url} with payload: {model.model_dump_json()}",
+        Logger().log_info(f"Sending request to {url} with payload: {model.model_dump_json()}",
                           LogLevel.LOW_FREQ)
-        return requests.post(url, json=model.model_dump(), headers=headers)
+        result = command_type(url, json=model.model_dump(), headers=headers)
+
+        Logger().log_info(f"Received response: {result.json()}", LogLevel.LOW_FREQ)
+
+        return result
 
     # ------------------------------
     # Private methods

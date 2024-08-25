@@ -4,6 +4,8 @@ from Models.GlobalModels import CommandResult
 from Utils.Logger import Logger, LogLevel
 from .WorkerInstance import WorkerInstance
 from Utils.SettingsLoader import SettingsLoader
+import requests
+import time
 
 
 class CliTranslator:
@@ -90,7 +92,10 @@ class CliTranslator:
             return cli_cmd(self, index + 1)
         except Exception as e:
             self._display_help(command)
-            raise Exception(f"Command execution: \"{command}\", failed by reason:\n\t\t{e}")
+            msg = f"Command execution: \"{command}\", failed by reason: {e}"
+
+            Logger().log_error(msg, LogLevel.LOW_FREQ)
+            raise Exception(msg)
 
     def _display_help(self, command: str) -> None:
         if command in self.COMMAND_HELP:
@@ -176,11 +181,9 @@ class CliTranslator:
 
         model = WorkerModel(name=name, cpus=cpus, memoryMB=memory_mb, version=version)
         url = f"{host}/worker/register"
-        response = WorkerInstance.send_request(url, model)
+        response = WorkerInstance.send_request(requests.post, url, model)
 
-        Logger().log_info(f"Received registration response: {response.json()}", LogLevel.LOW_FREQ)
-
-        self._worker.register(host, model, WorkerRegistration.model_validate_json(response.json()))
+        self._worker.register(host, model, WorkerRegistration.model_validate(response.json()))
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
 
@@ -197,35 +200,41 @@ class CliTranslator:
                     "\tmemoryMB - amount of memory to use - default = 128")
         print(help_str)
 
-    def _disconnect(self) -> None:
-        retries = SettingsLoader().get_settings().unregister_retries
+    def _unregister(self, index: int) -> int:
+        retries = 0
 
         if not self._worker.is_registered():
             raise Exception("Worker is not registered to any manager")
 
         request = self._worker.prepare_unregister_request()
+        host = self._worker.get_connected_host()
+        url = f"{host}/worker/unregister"
         self._worker.unregister()
 
-        while retries > 0:
+        while retries < SettingsLoader().get_settings().unregister_retries:
             try:
-                response = WorkerInstance.send_request(self._worker.get_connected_host(), request)
-                self._worker.validate_unregister_response(CommandResult.model_validate_json(response.json()))
-                return
+                response = WorkerInstance.send_request(requests.delete, url, request)
+                break
             except Exception as e:
-                Logger().log_info(f"Disconnect request failed, remaining retries: {retries - 1}, error trace: {e}",
-                                  LogLevel.MEDIUM_FREQ)
+                Logger().log_info(
+                    f"Unregister request failed, trying again with retry num: {retries + 1}, error trace: {e}",
+                    LogLevel.MEDIUM_FREQ)
 
-            retries -= 1
+            time.sleep(SettingsLoader().get_settings().retry_timestep)
+            retries += 1
+
+        WorkerInstance.validate_response(CommandResult.model_validate(response.json()))
+        return index
 
     @staticmethod
-    def _disconnect_help() -> None:
-        print("syntax: --disconnect\n\tCommand disconnect worker from the Manager node, stopping all ongoing jobs")
+    def _unregister_help() -> None:
+        print("syntax: --unregister\n\tCommand unregisters worker from the Manager node, stopping all ongoing jobs")
 
     COMMANDS = {
         "help": _help,
         "version": _version,
         "connect": _connect,
-        "disconnect": _disconnect,
+        "unregister": _unregister,
         "set_log_level": _set_log_level,
     }
 
@@ -233,6 +242,6 @@ class CliTranslator:
         "connect": _connect_help,
         "version": _version_help,
         "help": _help_help,
-        "disconnect": _disconnect_help,
+        "unregister": _unregister_help,
         "set_log_level": _set_log_level_help,
     }

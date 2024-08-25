@@ -1,7 +1,7 @@
 import time
 
 from .GlobalObj import GlobalObj
-from threading import Lock, Thread
+from threading import Lock, Thread, get_ident
 from typing import TextIO
 from datetime import datetime
 from enum import IntEnum
@@ -71,11 +71,19 @@ class Logger(metaclass=GlobalObj):
 
     @staticmethod
     def wrap_info(msg: str) -> str:
-        return Logger.wrap_log(f"[ INFO ] {msg}")
+        return Logger.wrap_log(Logger.wrap_thread(f"[ INFO ] {msg}"))
 
     @staticmethod
     def wrap_error(msg: str) -> str:
-        return Logger.wrap_log(f"[ ERROR ] {msg}")
+        return Logger.wrap_log(Logger.wrap_thread(f"[ ERROR ] {msg}"))
+
+    @staticmethod
+    def wrap_thread(msg: str) -> str:
+        return f"[ {get_ident()} ] {msg}"
+
+    @staticmethod
+    def wrap_freq(msg: str, log_level: LogLevel) -> str:
+        return f"[ {log_level.name} ] {msg}"
 
     def log(self, msg: str, log_level: LogLevel) -> None:
         if log_level > self._log_level:
@@ -88,10 +96,10 @@ class Logger(metaclass=GlobalObj):
             self._log_file.write(f"{msg}\n")
 
     def log_info(self, msg: str, log_level: LogLevel) -> None:
-        self.log(Logger.wrap_info(msg), log_level)
+        self.log(Logger.wrap_info(Logger.wrap_freq(msg, log_level)), log_level)
 
     def log_error(self, msg: str, log_level: LogLevel) -> None:
-        self.log(Logger.wrap_error(msg), log_level)
+        self.log(Logger.wrap_error(Logger.wrap_freq(msg, log_level)), log_level)
 
     # ------------------------------
     # Private methods

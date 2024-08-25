@@ -21,7 +21,7 @@ class Worker:
 
     model: WorkerModel
     activity_timestamp: float
-    token: int
+    session_token: int
 
     # ------------------------------
     # Class creation
@@ -32,7 +32,7 @@ class Worker:
         self.activity_timestamp = time.perf_counter()
 
         random_bits = secrets.randbits(32)
-        self.token = (Worker._instance_count << 32) + random_bits
+        self.session_token = (Worker._instance_count << 32) + random_bits
 
         Worker._instance_count += 1
 
@@ -67,9 +67,6 @@ class WorkerMgr(metaclass=GlobalObj):
         self._workers_name_lookup_lock = Lock()
         self._workers_queue = list[Worker]()
 
-        settings = SettingsLoader().get_settings()
-        self._worker_timeout = settings.worker_timeout
-
         self._workersAuditor = Thread(target=self._worker_audit_thread)
         self._workersAuditor.start()
 
@@ -99,13 +96,10 @@ class WorkerMgr(metaclass=GlobalObj):
         return [ErrorTable.SUCCESS, token]
 
     def unregister(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
-        with self._workers_queue_lock:
-            if unregister_request.name in self._workers_queue:
-                self._move_workers()  # Apply early queue processing
+        self._move_workers()  # Apply early queue processing
 
-        user_found = False
         with self._workers_name_lookup_lock:
-            user_found = (unregister_request.name in self._workers)
+            user_found = (unregister_request.name in self._workers.keys())
 
         if user_found:
             with self._workers_lock:
@@ -114,8 +108,9 @@ class WorkerMgr(metaclass=GlobalObj):
         return ErrorTable.WORKER_NOT_FOUND
 
     def unregister_unlocked(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
-        if self._workers[unregister_request.name].token == unregister_request.token:
+        if self._workers[unregister_request.name].session_token == unregister_request.session_token:
             del self._workers[unregister_request.name]
+            Logger().log_info(f"Worker: {unregister_request.name} unregistered", LogLevel.MEDIUM_FREQ)
             return ErrorTable.SUCCESS
         return ErrorTable.INVALID_TOKEN
 
@@ -127,32 +122,37 @@ class WorkerMgr(metaclass=GlobalObj):
         worker = Worker(worker_model)
         self._workers_queue.append(worker)
 
-        Logger().log_info(f"Registered worker with name: {worker_model.name} and session token: {worker.token}",
+        Logger().log_info(f"Registered worker with name: {worker_model.name} and session token: {worker.session_token}",
                           LogLevel.MEDIUM_FREQ)
 
-        return worker.token
+        return worker.session_token
 
     def _timeout_worker(self, worker_name: str, inactivity: float) -> None:
-        Logger().log_info(f"Worker: {worker_name} timeout: {inactivity}s", LogLevel.HIGH_FREQ)
+        Logger().log_info(f"Worker: {worker_name} timeout, inactivity: {inactivity}s", LogLevel.MEDIUM_FREQ)
         del self._workers[worker_name]
 
     def _audit_workers(self) -> None:
+        Logger().log_info("Audit started", LogLevel.HIGH_FREQ)
         with self._workers_lock:
             for worker in list(self._workers.keys()):
                 with self._workers_name_lookup_lock:
                     time_now = time.perf_counter()
                     inactivity = time_now - self._workers[worker].activity_timestamp
 
-                    if inactivity > self._worker_timeout:
+                    if inactivity > SettingsLoader().get_settings().worker_timeout:
                         self._timeout_worker(worker, inactivity)
+        Logger().log_info("Audit finished", LogLevel.HIGH_FREQ)
 
     def _move_workers(self) -> None:
+        Logger().log_info("Registrations hardening started", LogLevel.HIGH_FREQ)
         with self._workers_queue_lock:
             while len(self._workers_queue) != 0:
                 worker = self._workers_queue.pop()
                 with self._workers_lock:
                     with self._workers_name_lookup_lock:
                         self._workers[worker.model.name] = worker
+                        Logger().log_info(f"Worker: {worker.model.name} moved from queue to db", LogLevel.HIGH_FREQ)
+        Logger().log_info("Registrations hardening finished", LogLevel.HIGH_FREQ)
 
     def _worker_audit_thread(self) -> None:
         while self._shouldWork:

@@ -1,7 +1,7 @@
 from threading import Thread, Lock
 from time import sleep
 import os
-from typing import Type
+from typing import Type, Callable
 from pydantic import BaseModel
 
 from .GlobalObj import GlobalObj
@@ -16,6 +16,7 @@ class SettingsLoader(metaclass=GlobalObj):
     _thread_should_work: bool
     _thread: Thread
     _lock: Lock
+    _events: list[Callable[[BaseModel], None]]
 
     # ------------------------------
     # Class creation
@@ -37,6 +38,7 @@ class SettingsLoader(metaclass=GlobalObj):
 
         self._last_edit_time = os.path.getmtime(self._settings_path)
         self._lock = Lock()
+        self._events = list[Callable[[BaseModel], None]]()
 
         self._thread_should_work = True
         self._thread = Thread(target=self._settings_loader_thread)
@@ -70,6 +72,10 @@ class SettingsLoader(metaclass=GlobalObj):
         with self._lock:
             return self._settings
 
+    def add_event(self, event: Callable[[BaseModel], None]) -> None:
+        with self._lock:
+            self._events.append(event)
+
     # ------------------------------
     # Private methods
     # ------------------------------
@@ -77,13 +83,21 @@ class SettingsLoader(metaclass=GlobalObj):
     def _settings_loader_thread(self):
         while self._thread_should_work:
             sleep(0.1)
-            mod_time = os.path.getmtime(self._settings_path)
+            self._periodic_settings_reload()
 
-            if mod_time > self._last_edit_time:
-                self._last_edit_time = mod_time
-                with self._lock:
-                    try:
-                        self._settings = self.parse_settings_log(self._settings_path)
-                    except Exception as e:
-                        Logger().log_error(f"Failed to parse settings after init: {e}", LogLevel.LOW_FREQ)
-                        self.save_settings(self._settings_path)
+    def _run_events_unlocked(self):
+        for event in self._events:
+            event(self._settings)
+
+    def _periodic_settings_reload(self):
+        mod_time = os.path.getmtime(self._settings_path)
+
+        if mod_time > self._last_edit_time:
+            self._last_edit_time = mod_time
+            with self._lock:
+                try:
+                    self._settings = self.parse_settings_log(self._settings_path)
+                except Exception as e:
+                    Logger().log_error(f"Failed to parse settings after init: {e}", LogLevel.LOW_FREQ)
+                    self.save_settings(self._settings_path)
+                self._run_events_unlocked()

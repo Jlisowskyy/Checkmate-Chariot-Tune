@@ -1,4 +1,4 @@
-from ...Utils.Logger import LogLevel
+from ...Utils.Logger import LogLevel, Logger
 from pydantic import BaseModel
 
 
@@ -8,3 +8,7 @@ class ManagerSettings(BaseModel):
     log_std_out: bool = False
     log_level: int = LogLevel.MEDIUM_FREQ
     worker_timeout: int = 10
+
+
+def update_logger_freq(settings: ManagerSettings) -> None:
+    Logger().set_log_level(LogLevel(settings.log_level))
