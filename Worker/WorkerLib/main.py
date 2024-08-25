@@ -9,10 +9,8 @@ SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
 
 # TODOS:
-# - make WorkerInstance not global
 # - finish retries
 # - finish unregister
-# - create settings refresh
 
 def main(args: list[str]) -> None:
     # init logger
@@ -22,7 +20,10 @@ def main(args: list[str]) -> None:
     SettingsLoader(WorkerSettings, SETTINGS_PATH)
 
     # init worker object
-    WorkerInstance()
+    instance = WorkerInstance()
 
     # init worker CLI
-    CliTranslator().parse_args(args).parse_stdin()
+    CliTranslator(instance).parse_args(args).parse_stdin()
+
+    SettingsLoader().destroy()
+    Logger().destroy()

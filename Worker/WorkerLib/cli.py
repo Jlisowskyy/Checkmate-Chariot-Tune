@@ -12,13 +12,14 @@ class CliTranslator:
     # ------------------------------
 
     _args: list[str]
+    _worker: WorkerInstance
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self):
-        pass
+    def __init__(self, worker: WorkerInstance):
+        self._worker = worker
 
     # ------------------------------
     # Class interaction
@@ -49,6 +50,8 @@ class CliTranslator:
             level = LogLevel[level]
         except Exception as e:
             raise Exception("Provided wrong log level")
+
+        Logger().set_log_level(level)
 
         return index + 1
 
@@ -155,7 +158,7 @@ class CliTranslator:
     def _connect(self, index: int) -> int:
         [index, options] = self._parse_options(index)
 
-        if WorkerInstance().is_registered():
+        if self._worker.is_registered():
             raise Exception("Worker is already registered to manager")
 
         host = CliTranslator._extract_option_guarded(options, "host")
@@ -177,7 +180,7 @@ class CliTranslator:
 
         Logger().log_info(f"Received registration response: {response.json()}", LogLevel.LOW_FREQ)
 
-        WorkerInstance().register(host, model, WorkerRegistration.model_validate_json(response.json()))
+        self._worker.register(host, model, WorkerRegistration.model_validate_json(response.json()))
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
 
@@ -197,16 +200,16 @@ class CliTranslator:
     def _disconnect(self) -> None:
         retries = SettingsLoader().get_settings().unregister_retries
 
-        if not WorkerInstance().is_registered():
+        if not self._worker.is_registered():
             raise Exception("Worker is not registered to any manager")
 
-        request = WorkerInstance().prepare_unregister_request()
-        WorkerInstance().unregister()
+        request = self._worker.prepare_unregister_request()
+        self._worker.unregister()
 
         while retries > 0:
             try:
-                response = WorkerInstance.send_request(WorkerInstance().get_connected_host(), request)
-                WorkerInstance().validate_unregister_response(CommandResult.model_validate_json(response.json()))
+                response = WorkerInstance.send_request(self._worker.get_connected_host(), request)
+                self._worker.validate_unregister_response(CommandResult.model_validate_json(response.json()))
                 return
             except Exception as e:
                 Logger().log_info(f"Disconnect request failed, remaining retries: {retries - 1}, error trace: {e}",

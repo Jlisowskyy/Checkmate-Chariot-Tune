@@ -29,4 +29,5 @@ def startup():
 
 def cleanup():
     WorkerMgr().destroy()
+    SettingsLoader().destroy()
     Logger().destroy()

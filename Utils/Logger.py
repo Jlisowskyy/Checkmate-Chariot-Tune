@@ -62,6 +62,7 @@ class Logger(metaclass=GlobalObj):
 
     def set_log_level(self, log_level: LogLevel) -> None:
         self._log_level = log_level
+        self.log_info(f"Logger level set to: {log_level}", LogLevel.LOW_FREQ)
 
     @staticmethod
     def wrap_log(msg: str) -> str:

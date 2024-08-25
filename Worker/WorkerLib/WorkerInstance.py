@@ -1,4 +1,3 @@
-from Utils.GlobalObj import GlobalObj
 from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerModel
 from Models.GlobalModels import CommandResult
 from pydantic import BaseModel
@@ -7,7 +6,7 @@ from Utils.Logger import Logger, LogLevel
 import requests
 
 
-class WorkerInstance(metaclass=GlobalObj):
+class WorkerInstance():
     # ------------------------------
     # Class fields
     # ------------------------------

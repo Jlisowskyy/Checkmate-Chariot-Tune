@@ -75,6 +75,12 @@ class WorkerMgr(metaclass=GlobalObj):
 
         Logger().log_info("WorkerMgr created", LogLevel.LOW_FREQ)
 
+    def destroy(self) -> None:
+        self._shouldWork = False
+        self._workersAuditor.join()
+
+        Logger().log_info("WorkerMgr destroyed", LogLevel.LOW_FREQ)
+
     # ------------------------------
     # Class interaction
     # ------------------------------
@@ -112,12 +118,6 @@ class WorkerMgr(metaclass=GlobalObj):
             del self._workers[unregister_request.name]
             return ErrorTable.SUCCESS
         return ErrorTable.INVALID_TOKEN
-
-    def destroy(self) -> None:
-        self._shouldWork = False
-        self._workersAuditor.join()
-
-        Logger().log_info("WorkerMgr destroyed", LogLevel.LOW_FREQ)
 
     # ------------------------------
     # Private methods
