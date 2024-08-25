@@ -3,11 +3,12 @@ from Models.GlobalModels import CommandResult
 from pydantic import BaseModel
 from Utils.Logger import Logger, LogLevel
 from typing import Callable
+from threading import Thread, Lock
 
 import requests
 
 
-class WorkerInstance:
+class WorkerCLI:
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -36,7 +37,7 @@ class WorkerInstance:
         return self._session_token is not None
 
     def register(self, host: str, register_request: WorkerModel, register_response: WorkerRegistration) -> None:
-        WorkerInstance.validate_response(register_response.result)
+        WorkerCLI.validate_response(register_response.result)
 
         self._session_token = register_response.session_token
         self._session_host = host

@@ -2,10 +2,13 @@ from ProjectInfo.ProjectInfo import ProjectInfoInstance
 from Models.WorkerModels import WorkerModel, WorkerRegistration
 from Models.GlobalModels import CommandResult
 from Utils.Logger import Logger, LogLevel
-from .WorkerInstance import WorkerInstance
+from .WorkerCLI import WorkerCLI
 from Utils.SettingsLoader import SettingsLoader
+
 import requests
 import time
+import subprocess
+import os
 
 
 class CliTranslator:
@@ -14,13 +17,13 @@ class CliTranslator:
     # ------------------------------
 
     _args: list[str]
-    _worker: WorkerInstance
+    _worker: WorkerCLI
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, worker: WorkerInstance):
+    def __init__(self, worker: WorkerCLI):
         self._worker = worker
 
     # ------------------------------
@@ -181,7 +184,7 @@ class CliTranslator:
 
         model = WorkerModel(name=name, cpus=cpus, memoryMB=memory_mb, version=version)
         url = f"{host}/worker/register"
-        response = WorkerInstance.send_request(requests.post, url, model)
+        response = WorkerCLI.send_request(requests.post, url, model)
 
         self._worker.register(host, model, WorkerRegistration.model_validate(response.json()))
 
@@ -210,10 +213,11 @@ class CliTranslator:
         host = self._worker.get_connected_host()
         url = f"{host}/worker/unregister"
         self._worker.unregister()
+        response = None
 
         while retries < SettingsLoader().get_settings().unregister_retries:
             try:
-                response = WorkerInstance.send_request(requests.delete, url, request)
+                response = WorkerCLI.send_request(requests.delete, url, request)
                 break
             except Exception as e:
                 Logger().log_info(
@@ -223,12 +227,28 @@ class CliTranslator:
             time.sleep(SettingsLoader().get_settings().retry_timestep)
             retries += 1
 
-        WorkerInstance.validate_response(CommandResult.model_validate(response.json()))
+        if response is not None:
+            WorkerCLI.validate_response(CommandResult.model_validate(response.json()))
         return index
 
     @staticmethod
     def _unregister_help() -> None:
         print("syntax: --unregister\n\tCommand unregisters worker from the Manager node, stopping all ongoing jobs")
+
+    def _deploy(self, index: int) -> int:
+        process = subprocess.Popen(['python', ''])
+
+        Logger().log_info("Worker process correctly deployed", LogLevel.LOW_FREQ)
+
+        return index
+
+    @staticmethod
+    def _deploy_help() -> None:
+        print(
+            "syntax: --deploy\n\t"
+            "Command will try to create a background process that will be responsible\n"
+            "for all job processing"
+        )
 
     COMMANDS = {
         "help": _help,
@@ -236,6 +256,7 @@ class CliTranslator:
         "connect": _connect,
         "unregister": _unregister,
         "set_log_level": _set_log_level,
+        "deploy": _deploy,
     }
 
     COMMAND_HELP = {
@@ -244,4 +265,5 @@ class CliTranslator:
         "help": _help_help,
         "unregister": _unregister_help,
         "set_log_level": _set_log_level_help,
+        "deploy": _deploy_help,
     }
