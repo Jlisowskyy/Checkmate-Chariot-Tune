@@ -2,8 +2,7 @@ from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerMode
 from Models.GlobalModels import CommandResult
 from pydantic import BaseModel
 from Utils.Logger import Logger, LogLevel
-from typing import Callable
-from threading import Thread, Lock
+from LockFile import LOCK_FILE_PATH, LockFile
 
 import requests
 
@@ -16,6 +15,7 @@ class WorkerCLI:
     _session_token: int | None
     _session_model: WorkerModel | None
     _session_host: str | None
+    _lock_file: LockFile
 
     # ------------------------------
     # Class creation
@@ -25,10 +25,14 @@ class WorkerCLI:
         self._session_token = None
         self._session_host = None
         self._session_model = None
+        self._lock_file = LockFile(LOCK_FILE_PATH)
 
     # ------------------------------
     # Class interaction
     # ------------------------------
+
+    def is_deployed(self) -> bool:
+        return self._lock_file.is_locked_process_existing()
 
     def is_connected(self) -> bool:
         return self._session_host is not None

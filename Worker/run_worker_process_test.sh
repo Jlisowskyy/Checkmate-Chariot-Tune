@@ -5,4 +5,4 @@ cd "$SCRIPT_DIR" || exit 1
 cd ..
 
 source .venv/bin/activate
-python worker_process_test.py "$@"
+python worker_process.py "$@"

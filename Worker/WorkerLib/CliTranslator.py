@@ -4,6 +4,7 @@ from Models.GlobalModels import CommandResult
 from Utils.Logger import Logger, LogLevel
 from .WorkerCLI import WorkerCLI
 from Utils.SettingsLoader import SettingsLoader
+from BaseCli import BaseCli, CommandCli, CommandType
 
 import requests
 import time
@@ -11,12 +12,11 @@ import subprocess
 import os
 
 
-class CliTranslator:
+class CliTranslator(BaseCli):
     # ------------------------------
     # Class fields
     # ------------------------------
 
-    _args: list[str]
     _worker: WorkerCLI
 
     # ------------------------------
@@ -24,61 +24,18 @@ class CliTranslator:
     # ------------------------------
 
     def __init__(self, worker: WorkerCLI):
+        super().__init__()
         self._worker = worker
 
     # ------------------------------
     # Class interaction
     # ------------------------------
 
-    def parse_args(self, args: list[str]):
-        try:
-            self._parse_args_internal(args)
-        except Exception as e:
-            print(f"[ ERROR ] During argument parsing error occurred:\n\t{e}")
+    # ---------------------------------------------
+    # Abstract/Virtual methods implementation
+    # ---------------------------------------------
 
-        return self
-
-    def parse_stdin(self):
-        return self
-
-    # ------------------------------
-    # Private methods
-    # ------------------------------
-
-    def _set_log_level(self, index: int) -> int:
-        if index >= len(self._args):
-            raise Exception("LEVEL should bo provided")
-
-        level = self._args[index]
-
-        try:
-            level = LogLevel[level]
-        except Exception as e:
-            raise Exception("Provided wrong log level")
-
-        Logger().set_log_level(level)
-
-        return index + 1
-
-    @staticmethod
-    def _set_log_level_help():
-        print("syntax: --set_log_level LEVEL\n\t"
-              "Changes log level of logger\n\t"
-              "Available log levels:\n\t"
-              "LOW\n\t"
-              "MEDIUM\n\t"
-              "HIGH")
-
-    def _parse_args_internal(self, args: list[str]) -> None:
-        index = 1
-        self._args = args
-
-        while index < len(args):
-            index = self._execute_command(index)
-
-        Logger().log_info("Finished parsing arguments", LogLevel.LOW_FREQ)
-
-    def _execute_command(self, index: int) -> int:
+    def execute_command(self, index: int) -> int:
         command = self._args[index].strip()
 
         if not command.startswith("--"):
@@ -100,68 +57,13 @@ class CliTranslator:
             Logger().log_error(msg, LogLevel.LOW_FREQ)
             raise Exception(msg)
 
-    def _display_help(self, command: str) -> None:
-        if command in self.COMMAND_HELP:
-            print("Providing command description:")
-            self.COMMAND_HELP[command]()
+    # ------------------------------
+    # Private methods
+    # ------------------------------
 
-    @staticmethod
-    def _is_command(arg: str) -> bool:
-        return arg.strip().startswith("--")
-
-    def _parse_options(self, index: int) -> [int, dict[str, str]]:
-        rv = dict[str, str]()
-
-        while index < len(self._args) and not CliTranslator._is_command(self._args[index]):
-            arg = self._args[index].strip()
-            split = arg.split("=", 1)
-
-            if len(split) == 1:
-                raise Exception(f"Expected key-value pair written as \"key\"=\"value\", received {arg} ")
-
-            rv[split[0]] = split[1]
-            index += 1
-
-        return [index, rv]
-
-    @staticmethod
-    def _extract_option_guarded(options: dict[str, str], option: str) -> str:
-        if option not in options:
-            raise Exception(f"Option \"{option}\" is expected to be provided")
-        return options[option]
-
-    @staticmethod
-    def _extract_option_not_guarded(options: dict[str, str], option: str) -> str:
-        if option not in options:
-            return ""
-        return options[option]
-
-    def _help(self, index: int) -> int:
-        if index < len(self._args) and not CliTranslator._is_command(self._args[index]):
-            command = self._args[index].strip()
-            if command not in self.COMMAND_HELP:
-                raise Exception(f"Help for command \"{command}\" not supported")
-            self.COMMAND_HELP[command]()
-            return index + 1
-        else:
-            print("Available commands:")
-            for command in self.COMMANDS.keys():
-                print(f"\t{command}")
-            print("Type \"--help COMMAND_NAME\" to get more details on the command")
-            return index
-
-    @staticmethod
-    def _help_help() -> None:
-        print("syntax: --help COMMAND_NAME\n\tDisplay detailed help for the given command"
-              "--help\n\t to display list of available commands")
-
-    def _version(self, index: int) -> int:
-        ProjectInfoInstance.display_info("Worker")
-        return index
-
-    @staticmethod
-    def _version_help() -> None:
-        print("syntax: --version\n\tDisplay the version of the Worker")
+    # ------------------------------
+    # Available Commands
+    # ------------------------------
 
     def _connect(self, index: int) -> int:
         [index, options] = self._parse_options(index)
@@ -193,7 +95,7 @@ class CliTranslator:
         return index
 
     @staticmethod
-    def _connect_help() -> None:
+    def _connect_help() -> str:
         help_str = ("command syntax: --connect \"key1=value1\" \"key2=value2\" ...\n"
                     "Mandatory options:\n"
                     "\thost - defines url to the Manager endpoint\n"
@@ -201,7 +103,7 @@ class CliTranslator:
                     "Not mandatory options:\n"
                     "\tcpus - number of CPU cores to use - default = 1\n"
                     "\tmemoryMB - amount of memory to use - default = 128")
-        print(help_str)
+        return help_str
 
     def _unregister(self, index: int) -> int:
         retries = 0
@@ -232,38 +134,39 @@ class CliTranslator:
         return index
 
     @staticmethod
-    def _unregister_help() -> None:
-        print("syntax: --unregister\n\tCommand unregisters worker from the Manager node, stopping all ongoing jobs")
+    def _unregister_help() -> str:
+        return "syntax: --unregister\n\tCommand unregisters worker from the Manager node, stopping all ongoing jobs"
 
-    def _deploy(self, index: int) -> int:
-        process = subprocess.Popen(['python', ''])
+    def _set_log_level(self, index: int) -> int:
+        if index >= len(self._args):
+            raise Exception("LEVEL should bo provided")
 
-        Logger().log_info("Worker process correctly deployed", LogLevel.LOW_FREQ)
+        level = self._args[index]
 
-        return index
+        try:
+            level = LogLevel[level]
+        except Exception as e:
+            raise Exception(f"Provided wrong log level: {e}")
+
+        Logger().set_log_level(level)
+
+        return index + 1
 
     @staticmethod
-    def _deploy_help() -> None:
-        print(
-            "syntax: --deploy\n\t"
-            "Command will try to create a background process that will be responsible\n"
-            "for all job processing"
-        )
+    def _set_log_level_help() -> str:
+        help_str = ("syntax: --set_log_level LEVEL\n\t"
+                    "Changes log level of logger\n\t"
+                    "Available log levels:\n\t"
+                    "LOW\n\t"
+                    "MEDIUM\n\t"
+                    "HIGH")
 
-    COMMANDS = {
-        "help": _help,
-        "version": _version,
-        "connect": _connect,
-        "unregister": _unregister,
-        "set_log_level": _set_log_level,
-        "deploy": _deploy,
-    }
+        return help_str
 
-    COMMAND_HELP = {
-        "connect": _connect_help,
-        "version": _version_help,
-        "help": _help_help,
-        "unregister": _unregister_help,
-        "set_log_level": _set_log_level_help,
-        "deploy": _deploy_help,
-    }
+
+BaseCli.add_command(
+    CommandCli(CommandType.BACKEND, "connect", CliTranslator._connect, CliTranslator._connect_help))
+BaseCli.add_command(
+    CommandCli(CommandType.BACKEND, "unregister", CliTranslator._unregister, CliTranslator._unregister_help))
+BaseCli.add_command(
+    CommandCli(CommandType.BACKEND, "set_log_level", CliTranslator._set_log_level, CliTranslator._set_log_level_help))
