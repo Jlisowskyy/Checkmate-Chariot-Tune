@@ -17,7 +17,7 @@ class CommandCli:
 
     command_type: CommandType
     command: str
-    command_func: Callable[[int], int]
+    command_func: Callable[['BaseCli', int], int]
     command_help: Callable[[], str]
 
     # ------------------------------
@@ -27,7 +27,7 @@ class CommandCli:
     def __init__(self,
                  command_type: CommandType,
                  command: str,
-                 command_func: Callable[[int], int],
+                 command_func: Callable[['BaseCli', int], int],
                  command_help: Callable[[], str]
                  ) -> None:
         self.command_type = command_type
@@ -51,7 +51,7 @@ class BaseCli(ABC):
     # Class fields
     # ------------------------------
 
-    registered_commands: {str, CommandCli}
+    registered_commands = dict[str, CommandCli]()
     _args: list[str]
 
     # ------------------------------
@@ -65,11 +65,11 @@ class BaseCli(ABC):
     # Abstract/Virtual methods
     # ------------------------------
 
-    def notify_parse_fail(self, arg: any) -> None:
+    def _notify_parse_fail(self, arg: any) -> None:
         pass
 
     @abstractmethod
-    def execute_command(self, index: int) -> int:
+    def parse_single_command(self, index: int) -> int:
         pass
 
     # ------------------------------
@@ -80,7 +80,7 @@ class BaseCli(ABC):
         try:
             self._parse_args_internal(args)
         except Exception as e:
-            self.notify_parse_fail(e)
+            self._notify_parse_fail(e)
             Logger().log_error(f"During argument parsing, error occurred: {e}", LogLevel.LOW_FREQ)
 
         return self
@@ -136,9 +136,33 @@ class BaseCli(ABC):
         self._args = args
 
         while index < len(args):
-            index = self.execute_command(index)
+            index = self.parse_single_command(index)
 
         Logger().log_info("Finished parsing arguments", LogLevel.LOW_FREQ)
+
+    def _extract_command(self, index) -> CommandCli:
+        command = self._args[index].strip()
+
+        if not command.startswith("--"):
+            raise Exception(f"Expected command starting with: \"--\", received \"{command}\"")
+        command = command[2:].strip()
+
+        if command not in BaseCli.registered_commands:
+            raise Exception(f"Command \"{command}\" not supported")
+
+        return BaseCli.registered_commands[command]
+
+    def _execute_command(self, command: CommandCli, index: int) -> int:
+        try:
+            rv = command.command_func(self, index + 1)
+            Logger().log_info(f"Correctly finished execution of {command.command}", LogLevel.MEDIUM_FREQ)
+            return rv
+        except Exception as e:
+            BaseCli.display_help(command.command)
+            msg = f"Command execution: \"{command.command}\", failed by reason: {e}"
+
+            Logger().log_error(msg, LogLevel.LOW_FREQ)
+            raise Exception(msg)
 
     # ------------------------------
     # Available Commands
@@ -163,5 +187,4 @@ class BaseCli(ABC):
         return ("syntax: --help COMMAND_NAME\n\tDisplay detailed help for the given command "
                 "--help\n\t to display list of available commands")
 
-
-BaseCli.add_command(CommandCli(CommandType.UNIVERSAL, "help", BaseCli._help, BaseCli._help_help))
+    registered_commands["help"] = CommandCli(CommandType.UNIVERSAL, "help", _help, _help_help)

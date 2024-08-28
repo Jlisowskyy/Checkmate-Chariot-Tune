@@ -6,7 +6,7 @@ from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .WorkerLib.WorkerSettings import WorkerSettings
 
-LOGGER_PATH = "/tmp/log_worker.txt"
+LOGGER_PATH = "/tmp/worker.log"
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
 

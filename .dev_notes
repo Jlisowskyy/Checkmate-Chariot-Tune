@@ -1,4 +1,8 @@
 TODOS:
-- finish deploy
-- implement ipc
+- finish deploy:
+    - correctly spawn the process and add thread awaiting for commands
+- implement ipc:
+    - find some way to send messages between processes in python
+    - messages will be sent as plain strings
+    - wait for response from backend process
 - implement socket connection

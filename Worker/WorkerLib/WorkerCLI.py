@@ -2,7 +2,7 @@ from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerMode
 from Models.GlobalModels import CommandResult
 from pydantic import BaseModel
 from Utils.Logger import Logger, LogLevel
-from LockFile import LOCK_FILE_PATH, LockFile
+from .LockFile import LOCK_FILE_PATH, LockFile
 
 import requests
 

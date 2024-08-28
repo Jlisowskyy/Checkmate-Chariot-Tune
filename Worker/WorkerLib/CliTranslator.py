@@ -4,7 +4,7 @@ from Models.GlobalModels import CommandResult
 from Utils.Logger import Logger, LogLevel
 from .WorkerCLI import WorkerCLI
 from Utils.SettingsLoader import SettingsLoader
-from BaseCli import BaseCli, CommandCli, CommandType
+from .BaseCli import BaseCli, CommandCli, CommandType
 
 import requests
 import time
@@ -35,27 +35,13 @@ class CliTranslator(BaseCli):
     # Abstract/Virtual methods implementation
     # ---------------------------------------------
 
-    def execute_command(self, index: int) -> int:
-        command = self._args[index].strip()
+    def parse_single_command(self, index: int) -> int:
+        cli_cmd = self._extract_command(index)
 
-        if not command.startswith("--"):
-            raise Exception(f"Expected command starting with: \"--\", received \"{command}\"")
-        command = command[2:].strip()
+        if cli_cmd.command_type == CommandType.FRONTEND:
+            raise Exception(f"Received command intended for frontend CLI only")
 
-        if command not in self.COMMANDS:
-            raise Exception(f"Command \"{command}\" not supported")
-
-        cli_cmd = self.COMMANDS[command]
-
-        try:
-            Logger().log_info(f"Finished parsing command: {command} as argument", LogLevel.MEDIUM_FREQ)
-            return cli_cmd(self, index + 1)
-        except Exception as e:
-            self._display_help(command)
-            msg = f"Command execution: \"{command}\", failed by reason: {e}"
-
-            Logger().log_error(msg, LogLevel.LOW_FREQ)
-            raise Exception(msg)
+        return self._execute_command(cli_cmd, index)
 
     # ------------------------------
     # Private methods
@@ -66,18 +52,18 @@ class CliTranslator(BaseCli):
     # ------------------------------
 
     def _connect(self, index: int) -> int:
-        [index, options] = self._parse_options(index)
+        [index, options] = self.parse_options(index)
 
         if self._worker.is_registered():
             raise Exception("Worker is already registered to manager")
 
-        host = CliTranslator._extract_option_guarded(options, "host")
-        name = CliTranslator._extract_option_guarded(options, "name")
+        host = CliTranslator.extract_option_guarded(options, "host")
+        name = CliTranslator.extract_option_guarded(options, "name")
 
         try:
-            opt = CliTranslator._extract_option_not_guarded(options, "cpus")
+            opt = CliTranslator.extract_option_not_guarded(options, "cpus")
             cpus = int(opt) if opt != "" else 1
-            opt = CliTranslator._extract_option_not_guarded(options, "memoryMB")
+            opt = CliTranslator.extract_option_not_guarded(options, "memoryMB")
             memory_mb = int(opt) if opt != "" else 128
         except Exception as e:
             raise Exception(f"Unable to parse option \"{e}\"")
@@ -163,10 +149,9 @@ class CliTranslator(BaseCli):
 
         return help_str
 
-
-BaseCli.add_command(
-    CommandCli(CommandType.BACKEND, "connect", CliTranslator._connect, CliTranslator._connect_help))
-BaseCli.add_command(
-    CommandCli(CommandType.BACKEND, "unregister", CliTranslator._unregister, CliTranslator._unregister_help))
-BaseCli.add_command(
-    CommandCli(CommandType.BACKEND, "set_log_level", CliTranslator._set_log_level, CliTranslator._set_log_level_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "connect", _connect, _connect_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "unregister", _unregister, _unregister_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "set_log_level", _set_log_level, _set_log_level_help))

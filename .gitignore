@@ -11,3 +11,4 @@ Worker/Utils
 Worker/ProjectInfo
 Worker/Models
 log.txt
+*.log
