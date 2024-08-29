@@ -49,11 +49,13 @@ class LockFile:
             Logger().log_info(f"Failed to lock file: {e}", LogLevel.LOW_FREQ)
             return False
 
+        Logger().log_info("Correctly locked the file", LogLevel.LOW_FREQ)
         return True
 
     def lock_file_safe(self) -> bool:
         if not self.is_locked_process_existing():
-            os.remove(self._path)
+            if os.path.exists(self._path):
+                os.remove(self._path)
 
             return self.lock_file()
         return False
@@ -63,7 +65,10 @@ class LockFile:
 
         if pid is not None and pid == os.getpid():
             os.remove(self._path)
+
+            Logger().log_info("Correctly released lock file", LogLevel.LOW_FREQ)
             return True
+        Logger().log_info("Failed to release lock file", LogLevel.LOW_FREQ)
         return False
 
     # ------------------------------

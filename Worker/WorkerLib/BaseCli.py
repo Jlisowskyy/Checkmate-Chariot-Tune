@@ -132,7 +132,7 @@ class BaseCli(ABC):
     # ------------------------------
 
     def _parse_args_internal(self, args: list[str]) -> None:
-        index = 1
+        index = 0
         self._args = args
 
         while index < len(args):
@@ -155,14 +155,11 @@ class BaseCli(ABC):
     def _execute_command(self, command: CommandCli, index: int) -> int:
         try:
             rv = command.command_func(self, index + 1)
-            Logger().log_info(f"Correctly finished execution of {command.command}", LogLevel.MEDIUM_FREQ)
+            Logger().log_info(f"Correctly finished execution of \"{command.command}\" command", LogLevel.MEDIUM_FREQ)
             return rv
         except Exception as e:
             BaseCli.display_help(command.command)
-            msg = f"Command execution: \"{command.command}\", failed by reason: {e}"
-
-            Logger().log_error(msg, LogLevel.LOW_FREQ)
-            raise Exception(msg)
+            raise Exception(f"Command execution: \"{command.command}\", failed by reason: {e}")
 
     # ------------------------------
     # Available Commands

@@ -10,6 +10,7 @@ import requests
 import time
 import subprocess
 import os
+from threading import Semaphore
 
 
 class CliTranslator(BaseCli):
@@ -17,15 +18,17 @@ class CliTranslator(BaseCli):
     # Class fields
     # ------------------------------
 
-    _worker: WorkerCLI
+    _worker_cli: WorkerCLI
+    _stop_sem: Semaphore
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, worker: WorkerCLI):
+    def __init__(self, worker_cli: WorkerCLI, stop_sem: Semaphore):
         super().__init__()
-        self._worker = worker
+        self._worker_cli = worker_cli
+        self._stop_sem = stop_sem
 
     # ------------------------------
     # Class interaction
@@ -51,10 +54,10 @@ class CliTranslator(BaseCli):
     # Available Commands
     # ------------------------------
 
-    def _connect(self, index: int) -> int:
+    def _connect_command(self, index: int) -> int:
         [index, options] = self.parse_options(index)
 
-        if self._worker.is_registered():
+        if self._worker_cli.is_registered():
             raise Exception("Worker is already registered to manager")
 
         host = CliTranslator.extract_option_guarded(options, "host")
@@ -74,7 +77,7 @@ class CliTranslator(BaseCli):
         url = f"{host}/worker/register"
         response = WorkerCLI.send_request(requests.post, url, model)
 
-        self._worker.register(host, model, WorkerRegistration.model_validate(response.json()))
+        self._worker_cli.register(host, model, WorkerRegistration.model_validate(response.json()))
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
 
@@ -91,16 +94,16 @@ class CliTranslator(BaseCli):
                     "\tmemoryMB - amount of memory to use - default = 128")
         return help_str
 
-    def _unregister(self, index: int) -> int:
+    def _unregister_command(self, index: int) -> int:
         retries = 0
 
-        if not self._worker.is_registered():
+        if not self._worker_cli.is_registered():
             raise Exception("Worker is not registered to any manager")
 
-        request = self._worker.prepare_unregister_request()
-        host = self._worker.get_connected_host()
+        request = self._worker_cli.prepare_unregister_request()
+        host = self._worker_cli.get_connected_host()
         url = f"{host}/worker/unregister"
-        self._worker.unregister()
+        self._worker_cli.unregister()
         response = None
 
         while retries < SettingsLoader().get_settings().unregister_retries:
@@ -123,7 +126,7 @@ class CliTranslator(BaseCli):
     def _unregister_help() -> str:
         return "syntax: --unregister\n\tCommand unregisters worker from the Manager node, stopping all ongoing jobs"
 
-    def _set_log_level(self, index: int) -> int:
+    def _set_log_level_command(self, index: int) -> int:
         if index >= len(self._args):
             raise Exception("LEVEL should bo provided")
 
@@ -149,9 +152,20 @@ class CliTranslator(BaseCli):
 
         return help_str
 
+    def _stop_command(self, index: int) -> int:
+        self._stop_sem.release()
+        return index
+
+    @staticmethod
+    def _stop_help() -> str:
+        return ("syntax: --stop_worker\n\t"
+                "Gently shutdowns background worker process")
+
     BaseCli.add_command(
-        CommandCli(CommandType.BACKEND, "connect", _connect, _connect_help))
+        CommandCli(CommandType.BACKEND, "connect", _connect_command, _connect_help))
     BaseCli.add_command(
-        CommandCli(CommandType.BACKEND, "unregister", _unregister, _unregister_help))
+        CommandCli(CommandType.BACKEND, "unregister", _unregister_command, _unregister_help))
     BaseCli.add_command(
-        CommandCli(CommandType.BACKEND, "set_log_level", _set_log_level, _set_log_level_help))
+        CommandCli(CommandType.BACKEND, "set_log_level", _set_log_level_command, _set_log_level_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "stop_worker", _stop_command, _stop_help))

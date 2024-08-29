@@ -14,7 +14,7 @@ def worker_process_init():
     worker_process = None
 
     # init logger
-    Logger(LOGGER_PATH, False, LogLevel.LOW_FREQ)
+    Logger(LOGGER_PATH, False, LogLevel.MEDIUM_FREQ)
 
     try:
         worker_process = WorkerProcess()
@@ -30,8 +30,9 @@ def worker_process_init():
         SettingsLoader(WorkerSettings, SETTINGS_PATH)
 
         worker_process.start_processing()
+        worker_process.wait_for_stop()
 
-    time.sleep(10)
-    print("ELO")
+        worker_process.destroy()
+        SettingsLoader().destroy()
 
     Logger().destroy()

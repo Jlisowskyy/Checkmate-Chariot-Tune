@@ -1,8 +1,12 @@
-import subprocess
+import socket
+import json
+import os
+from pathlib import Path
 
 from .CliTranslator import *
 from Utils.Logger import Logger, LogLevel
 from .BaseCli import BaseCli, CommandType
+from Utils.SettingsLoader import SettingsLoader
 
 
 class Cli(BaseCli):
@@ -51,13 +55,41 @@ class Cli(BaseCli):
         full_command = ' '.join(command_parts)
         Logger().log_info(f"Sending command '{full_command}' to the backend process", LogLevel.MEDIUM_FREQ)
 
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect(('localhost', SettingsLoader().get_settings().process_port))
+            client_socket.sendall(json.dumps({"args": command_parts}).encode())
+            client_socket.close()
+        except Exception as e:
+            raise Exception(f"Failed to send command: {full_command} to backend process: {e}")
+
+    @staticmethod
+    def _format_error_status(status) -> str:
+        if os.WIFEXITED(status):
+            exit_code = os.WEXITSTATUS(status)
+            return f"Process exited with code {exit_code}"
+        elif os.WIFSIGNALED(status):
+            signal_number = os.WTERMSIG(status)
+            return f"Process terminated by signal {signal_number}"
+        else:
+            return "Unknown exit status"
+
     # ------------------------------
     # Available Commands
-    # ------------------------------
+    # ----------`--------------------
 
     def _deploy(self, index: int) -> int:
-        # process = subprocess.Popen(['python', ''])
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        worker_process_path = Path(script_path).parent / "run_worker_process_test.sh"
 
+        Logger().log_info(f"Starting worker process from path: {worker_process_path}", LogLevel.LOW_FREQ)
+
+        pid = os.spawnl(os.P_NOWAIT, str(worker_process_path), worker_process_path)
+
+        if pid <= 0:
+            raise Exception(f"Failed to start worker process: {Cli._format_error_status(pid)}")
+
+        time.sleep(5)
         Logger().log_info("Worker process correctly deployed", LogLevel.LOW_FREQ)
 
         return index

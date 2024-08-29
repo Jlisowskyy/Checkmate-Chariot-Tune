@@ -6,3 +6,7 @@ TODOS:
     - messages will be sent as plain strings
     - wait for response from backend process
 - implement socket connection
+
+
+DISTANT TODO:
+- add some restore mechanism on fails
