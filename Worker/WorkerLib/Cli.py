@@ -7,6 +7,7 @@ from .CliTranslator import *
 from Utils.Logger import Logger, LogLevel
 from .BaseCli import BaseCli, CommandType
 from Utils.SettingsLoader import SettingsLoader
+from .LockFile import LockFile, LOCK_FILE_PATH
 
 
 class Cli(BaseCli):
@@ -55,8 +56,10 @@ class Cli(BaseCli):
         full_command = ' '.join(command_parts)
         Logger().log_info(f"Sending command '{full_command}' to the backend process", LogLevel.MEDIUM_FREQ)
 
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.settimeout(5)
+
         try:
-            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect(('localhost', SettingsLoader().get_settings().process_port))
             client_socket.sendall(json.dumps({"args": command_parts}).encode())
             client_socket.close()
@@ -81,6 +84,12 @@ class Cli(BaseCli):
     def _deploy(self, index: int) -> int:
         script_path = os.path.dirname(os.path.abspath(__file__))
         worker_process_path = Path(script_path).parent / "run_worker_process_test.sh"
+
+        lockfile = LockFile(LOCK_FILE_PATH)
+        if lockfile.is_locked_process_existing():
+            Logger().log_warning(f"Worker process already exists with PID: {lockfile.get_locked_process_pid()}",
+                                 LogLevel.LOW_FREQ)
+            return index
 
         Logger().log_info(f"Starting worker process from path: {worker_process_path}", LogLevel.LOW_FREQ)
 

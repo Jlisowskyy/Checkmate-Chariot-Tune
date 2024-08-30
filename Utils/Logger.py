@@ -70,6 +70,10 @@ class Logger(metaclass=GlobalObj):
         return f"[{date_str}] {msg}"
 
     @staticmethod
+    def wrap_warning(msg: str) -> str:
+        return Logger.wrap_log(Logger.wrap_thread(f"[ WARN ] {msg}"))
+
+    @staticmethod
     def wrap_info(msg: str) -> str:
         return Logger.wrap_log(Logger.wrap_thread(f"[ INFO ] {msg}"))
 
@@ -100,6 +104,9 @@ class Logger(metaclass=GlobalObj):
 
     def log_error(self, msg: str, log_level: LogLevel) -> None:
         self.log(Logger.wrap_error(Logger.wrap_freq(msg, log_level)), log_level)
+
+    def log_warning(self, msg: str, log_level: LogLevel) -> None:
+        self.log(Logger.wrap_warning(Logger.wrap_freq(msg, log_level)), log_level)
 
     # ------------------------------
     # Private methods

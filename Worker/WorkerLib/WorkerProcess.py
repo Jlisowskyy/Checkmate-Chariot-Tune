@@ -2,6 +2,8 @@ import sys
 import socket
 import time
 import json
+import os
+import errno
 from typing import Callable
 from threading import Thread, Lock, get_ident, Semaphore
 
@@ -86,7 +88,7 @@ class WorkerProcess:
                     else "All retries have been used. Aborting execution..."
                 Logger().log_error(f"Thread func: {func.__name__} failed: {e}. {react_str}", LogLevel.LOW_FREQ)
 
-        Logger().log_info("Thread stopped", LogLevel.LOW_FREQ)
+        Logger().log_info("Thread stopped...", LogLevel.LOW_FREQ)
 
     def _worker_cli_thread(self) -> None:
         self._cli_socket.bind(("localhost", SettingsLoader().get_settings().process_port))
@@ -96,20 +98,28 @@ class WorkerProcess:
         while self._should_threads_work:
             try:
                 conn, addr = self._cli_socket.accept()
+            except OSError as e:
+                if e.errno != errno.EBADF or self._should_threads_work != False:
+                    Logger().log_error(f"Failed to accept incoming connection: {e}", LogLevel.LOW_FREQ)
+                continue
             except Exception as e:
-                Logger().log_error(f"Failed to accept incoming connection: {e}", LogLevel.MEDIUM_FREQ)
+                Logger().log_error(f"Failed to accept incoming connection: {e}", LogLevel.LOW_FREQ)
                 continue
 
             Logger().log_info(f"Received connection from: {addr}", LogLevel.MEDIUM_FREQ)
             try:
                 with conn:
                     data = conn.recv(1024).decode()
-                    Logger().log_info(f"Received command payload: {data}", LogLevel.MEDIUM_FREQ)
-
-                    cli_translator = CliTranslator(self._worker_cli, self._stop_sem)
-                    cli_translator.parse_args(json.loads(data)["args"])
             except Exception as e:
                 Logger().log_error(f"Failed to translate message: {data}. Root of the problem: {e}", LogLevel.LOW_FREQ)
+                continue
+
+            Logger().log_info(f"Received command payload: {data}", LogLevel.MEDIUM_FREQ)
+            try:
+                cli_translator = CliTranslator(self._worker_cli, self._stop_sem)
+                cli_translator.parse_args(json.loads(data)["args"])
+            except Exception as e:
+                Logger().log_error(f"Failed to parse command : {e}", LogLevel.LOW_FREQ)
 
     def _worker_cli_thread_guarded(self):
         WorkerProcess._thread_guard(self._worker_cli_thread)

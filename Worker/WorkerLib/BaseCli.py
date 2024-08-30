@@ -138,7 +138,7 @@ class BaseCli(ABC):
         while index < len(args):
             index = self.parse_single_command(index)
 
-        Logger().log_info("Finished parsing arguments", LogLevel.LOW_FREQ)
+        Logger().log_info("Finished parsing arguments", LogLevel.MEDIUM_FREQ)
 
     def _extract_command(self, index) -> CommandCli:
         command = self._args[index].strip()
