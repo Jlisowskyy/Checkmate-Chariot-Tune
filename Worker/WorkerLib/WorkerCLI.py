@@ -77,7 +77,7 @@ class WorkerCLI:
         }
 
         Logger().log_info(f"Sending request to {url} with payload: {model.model_dump_json()}",
-                          LogLevel.MEDIUM_FREQ)
+                          LogLevel.MEDIUM_FREQ )
         result = command_type(url, json=model.model_dump(), headers=headers)
 
         Logger().log_info(f"Received response: {result.json()}", LogLevel.MEDIUM_FREQ)
