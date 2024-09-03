@@ -1,4 +1,6 @@
 import os
+import time
+
 from psutil import pid_exists
 from Utils.Logger import Logger, LogLevel
 
@@ -70,6 +72,27 @@ class LockFile:
             return True
         Logger().log_info("Failed to release lock file", LogLevel.LOW_FREQ)
         return False
+
+    def await_creation(self, pid: int, timeout_ms: int) -> None:
+        NS_TO_MS = 1000 * 1000
+
+        init_time = time.perf_counter_ns()
+        act_time = time.perf_counter_ns()
+
+        while (act_time - init_time) / NS_TO_MS < timeout_ms:
+            if os.path.exists(self._path):
+                break
+
+            time.sleep(0.1)
+            act_time = time.perf_counter_ns()
+
+        if (act_time - init_time) / NS_TO_MS >= timeout_ms:
+            raise Exception(f"Lock file failed to create after: {timeout_ms}ms")
+
+        if self.get_locked_process_pid() != pid:
+            Logger().log_warning(f"Created file contains: {self.get_locked_process_pid()} pid"
+                                 f" but was given: {pid} pid",
+                                 LogLevel.LOW_FREQ)
 
     # ------------------------------
     # Private methods

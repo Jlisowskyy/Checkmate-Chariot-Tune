@@ -1,8 +1,14 @@
-TODOS:
+add response worker, CLI -> add query command -> add functional stops/aborts process/jobs -> add KA -> GO TO MANAGER IMPLEMENT
 
-- fix current code add proper error checking etc to proceed add correct state checking
-- implement socket connection
+MANAGER IMPLEMENT:
+implement auth -> implement KA -> implement Test Task class in mgr and derive what is needed -> implement Init to Worker
+-> GOTO JOBS IMPLEMENT
+
+JOBS IMPLEMENT
+
 
 
 DISTANT TODO:
 - add some restore mechanism on fails
+
+BUGS:

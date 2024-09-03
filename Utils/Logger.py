@@ -67,27 +67,27 @@ class Logger(metaclass=GlobalObj):
     @staticmethod
     def wrap_log(msg: str) -> str:
         date_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        return f"[{date_str}] {msg}"
+        return f"{date_str} {msg}"
 
     @staticmethod
     def wrap_warning(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"[ WARN ] {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(f"WARN  {msg}"))
 
     @staticmethod
     def wrap_info(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"[ INFO ] {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(f"INFO  {msg}"))
 
     @staticmethod
     def wrap_error(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"[ ERROR ] {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(f"ERROR {msg}"))
 
     @staticmethod
     def wrap_thread(msg: str) -> str:
-        return f"[ {get_ident()} ] {msg}"
+        return f" {get_ident()} {msg}"
 
     @staticmethod
     def wrap_freq(msg: str, log_level: LogLevel) -> str:
-        return f"[ {log_level.name} ] {msg}"
+        return f" {log_level.name:12} {msg}"
 
     def log(self, msg: str, log_level: LogLevel) -> None:
         if log_level > self._log_level:

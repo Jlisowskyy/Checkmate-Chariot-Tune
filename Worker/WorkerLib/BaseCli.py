@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from Utils.Logger import Logger, LogLevel
 from enum import IntEnum
-from typing import Callable
+from typing import Callable, overload, override
 
 
 class CommandType(IntEnum):

@@ -14,6 +14,11 @@ class WorkerRegistration(BaseModel):
     session_token: int
 
 
+class WorkerAuth(BaseModel):
+    name: str
+    session_token: str
+
+
 class WorkerUnregister(BaseModel):
     name: str
     session_token: int

@@ -5,34 +5,32 @@ from .WorkerLib.WorkerProcess import WorkerProcess
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .WorkerLib.WorkerSettings import WorkerSettings
+from .WorkerLib.WorkerComponents import WorkerComponents
 
 LOGGER_PATH = "/tmp/worker.log"
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
 
 def worker_process_init():
-    worker_process = None
-
     # init logger
     Logger(LOGGER_PATH, False, LogLevel.MEDIUM_FREQ)
 
     try:
-        worker_process = WorkerProcess()
+        WorkerComponents().init_components()
     except Exception as e:
         Logger().log_error(f"Failed to start worker process: {e}", LogLevel.LOW_FREQ)
 
-        if worker_process is not None:
-            worker_process.destroy()
-        worker_process = None
+        if not WorkerComponents().is_inited():
+            WorkerComponents().destroy_components()
 
-    if worker_process is not None:
+    if WorkerComponents().is_inited():
         # init SettingsLoader
         SettingsLoader(WorkerSettings, SETTINGS_PATH)
 
-        worker_process.start_processing()
-        worker_process.wait_for_stop()
+        WorkerComponents().get_worker_process().start_processing()
+        WorkerComponents().get_worker_process().wait_for_stop()
 
-        worker_process.destroy()
+        WorkerComponents().destroy_components()
         SettingsLoader().destroy()
 
     Logger().destroy()

@@ -1,12 +1,10 @@
-import socket
 import json
 import os
+import socket
 from pathlib import Path
+from time import sleep
 
 from .CliTranslator import *
-from Utils.Logger import Logger, LogLevel
-from .BaseCli import BaseCli, CommandType
-from Utils.SettingsLoader import SettingsLoader
 from .LockFile import LockFile, LOCK_FILE_PATH
 
 
@@ -34,8 +32,11 @@ class Cli(BaseCli):
         cli_cmd = self._extract_command(index)
 
         return self._execute_command(cli_cmd, index) \
-            if cli_cmd.command_type == CommandType.FRONTEND \
+            if cli_cmd.command_type != CommandType.BACKEND \
             else self._forward_backend_command_prepare(cli_cmd, index + 1)
+
+    def _notify_parse_fail(self, arg: any) -> None:
+        print(f"Command failed: {arg}")
 
     # ------------------------------
     # Private methods
@@ -52,19 +53,53 @@ class Cli(BaseCli):
         self._forward_backend_command_send(args_to_send)
         return index
 
-    def _forward_backend_command_send(self, command_parts: list[str]) -> None:
+    def _cli_connection_life_cycle(self, client_socket, command_parts: list[str]) -> None:
         full_command = ' '.join(command_parts)
+
         Logger().log_info(f"Sending command '{full_command}' to the backend process", LogLevel.MEDIUM_FREQ)
+
+        try:
+            client_socket.connect(('localhost', SettingsLoader().get_settings().process_port))
+        except Exception as e:
+            raise Exception(f"Failed to connect with backend process: {e}")
+
+        try:
+            client_socket.sendall(json.dumps({"args": command_parts}).encode())
+        except Exception as e:
+            raise Exception(f"Failed to send command: {full_command}, error info: {e}")
+
+        try:
+            response = client_socket.recv(512 * 1024).decode()
+            client_socket.close()
+        except Exception as e:
+            raise Exception(f"Failed to receive response: {e}")
+
+        print(
+            f"Command: {full_command}, received response:\n\n{response}"
+            f"\n----------------------------------------------------------------------------------")
+
+    def _forward_backend_command_send(self, command_parts: list[str]) -> None:
+        retries = 3
+
+        if not Cli._is_worker_deployed():
+            raise Exception("Worker is not deployed!")
 
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.settimeout(5)
 
-        try:
-            client_socket.connect(('localhost', SettingsLoader().get_settings().process_port))
-            client_socket.sendall(json.dumps({"args": command_parts}).encode())
-            client_socket.close()
-        except Exception as e:
-            raise Exception(f"Failed to send command: {full_command} to backend process: {e}")
+        while retries > 0:
+            retries -= 1
+
+            try:
+                self._cli_connection_life_cycle(client_socket, command_parts)
+            except Exception as e:
+                msg = f"Failed sending msg to worker process: {e}"
+
+                if retries == 0:
+                    raise Exception(msg)
+                else:
+                    Logger().log_warning(msg, LogLevel.MEDIUM_FREQ)
+                    time.sleep(1)
 
     @staticmethod
     def _format_error_status(status) -> str:
@@ -77,6 +112,21 @@ class Cli(BaseCli):
         else:
             return "Unknown exit status"
 
+    @staticmethod
+    def _is_worker_deployed() -> bool:
+        lockfile = LockFile(LOCK_FILE_PATH)
+        return lockfile.is_locked_process_existing()
+
+    @staticmethod
+    def _get_deployed_worker_pid() -> int:
+        lockfile = LockFile(LOCK_FILE_PATH)
+        return lockfile.get_locked_process_pid()
+
+    @staticmethod
+    def _await_worker_with_pid(pid: int, timeout_s: int) -> None:
+        lockfile = LockFile(LOCK_FILE_PATH)
+        lockfile.await_creation(pid, timeout_s * 1000)
+
     # ------------------------------
     # Available Commands
     # ----------`--------------------
@@ -85,9 +135,8 @@ class Cli(BaseCli):
         script_path = os.path.dirname(os.path.abspath(__file__))
         worker_process_path = Path(script_path).parent / "run_worker_process_test.sh"
 
-        lockfile = LockFile(LOCK_FILE_PATH)
-        if lockfile.is_locked_process_existing():
-            Logger().log_warning(f"Worker process already exists with PID: {lockfile.get_locked_process_pid()}",
+        if Cli._is_worker_deployed():
+            Logger().log_warning(f"Worker process already exists with PID: {Cli._get_deployed_worker_pid()}",
                                  LogLevel.LOW_FREQ)
             return index
 
@@ -98,8 +147,11 @@ class Cli(BaseCli):
         if pid <= 0:
             raise Exception(f"Failed to start worker process: {Cli._format_error_status(pid)}")
 
-        time.sleep(5)
+        Cli._await_worker_with_pid(pid, 5)
+        sleep(1)
+
         Logger().log_info("Worker process correctly deployed", LogLevel.LOW_FREQ)
+        print("Worker deployment status: Worker process correctly deployed")
 
         return index
 

@@ -1,16 +1,16 @@
-from ProjectInfo.ProjectInfo import ProjectInfoInstance
-from Models.WorkerModels import WorkerModel, WorkerRegistration
-from Models.GlobalModels import CommandResult
-from Utils.Logger import Logger, LogLevel
-from .WorkerCLI import WorkerCLI
-from Utils.SettingsLoader import SettingsLoader
-from .BaseCli import BaseCli, CommandCli, CommandType
+import time
+from threading import Semaphore
 
 import requests
-import time
-import subprocess
-import os
-from threading import Semaphore
+
+from Models.GlobalModels import CommandResult
+from Models.WorkerModels import WorkerModel, WorkerRegistration
+from ProjectInfo.ProjectInfo import ProjectInfoInstance
+from Utils.Logger import Logger, LogLevel
+from Utils.SettingsLoader import SettingsLoader
+from .BaseCli import BaseCli, CommandCli, CommandType
+from .NetConnectionMgr import NetConnectionMgr
+from .WorkerComponents import WorkerComponents, BlockType
 
 
 class CliTranslator(BaseCli):
@@ -18,21 +18,27 @@ class CliTranslator(BaseCli):
     # Class fields
     # ------------------------------
 
-    _worker_cli: WorkerCLI
+    _worker_cli: NetConnectionMgr
     _stop_sem: Semaphore
+
+    _response: str
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, worker_cli: WorkerCLI, stop_sem: Semaphore):
+    def __init__(self, worker_cli: NetConnectionMgr, stop_sem: Semaphore):
         super().__init__()
         self._worker_cli = worker_cli
         self._stop_sem = stop_sem
+        self._response = "FAILED"
 
     # ------------------------------
     # Class interaction
     # ------------------------------
+
+    def get_response(self) -> str:
+        return self._response
 
     # ---------------------------------------------
     # Abstract/Virtual methods implementation
@@ -69,17 +75,18 @@ class CliTranslator(BaseCli):
             opt = CliTranslator.extract_option_not_guarded(options, "memoryMB")
             memory_mb = int(opt) if opt != "" else 128
         except Exception as e:
-            raise Exception(f"Unable to parse option \"{e}\"")
+            raise Exception(f"Unable to parse options \"{e}\"")
 
         version = ProjectInfoInstance.get_current_version()
 
         model = WorkerModel(name=name, cpus=cpus, memoryMB=memory_mb, version=version)
         url = f"{host}/worker/register"
-        response = WorkerCLI.send_request(requests.post, url, model)
+        response = NetConnectionMgr.send_request(requests.post, url, model)
 
         self._worker_cli.register(host, model, WorkerRegistration.model_validate(response.json()))
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
+        self._response = "Correctly registered worker"
 
         return index
 
@@ -108,7 +115,7 @@ class CliTranslator(BaseCli):
 
         while retries < SettingsLoader().get_settings().unregister_retries:
             try:
-                response = WorkerCLI.send_request(requests.delete, url, request)
+                response = NetConnectionMgr.send_request(requests.delete, url, request)
                 break
             except Exception as e:
                 Logger().log_info(
@@ -119,7 +126,9 @@ class CliTranslator(BaseCli):
             retries += 1
 
         if response is not None:
-            WorkerCLI.validate_response(CommandResult.model_validate(response.json()))
+            NetConnectionMgr.validate_response(CommandResult.model_validate(response.json()))
+
+        self._response = "Correctly unregistered worker"
         return index
 
     @staticmethod
@@ -138,6 +147,7 @@ class CliTranslator(BaseCli):
             raise Exception(f"Provided wrong log level: {e}")
 
         Logger().set_log_level(level)
+        self._response = "Correctly changed log level"
 
         return index + 1
 
@@ -154,12 +164,94 @@ class CliTranslator(BaseCli):
 
     def _stop_command(self, index: int) -> int:
         self._stop_sem.release()
+        self._response = "Initialized worker stop process"
         return index
 
     @staticmethod
     def _stop_help() -> str:
         return ("syntax: --stop_worker\n\t"
                 "Gently shutdowns background worker process")
+
+    def _abort_command(self, index: int) -> int:
+        self._stop_sem.release()
+        self._response = "Initialized worker abort process"
+        return index
+
+    @staticmethod
+    def _abort_help() -> str:
+        return ("syntax: --abort_worker\n\t"
+                "Brutally shutdowns background worker process with guaranteed state hardened")
+
+    def _abort_jobs_command(self, index: int) -> int:
+        task_name = self._args[index] if index < len(self._args) else ""
+        WorkerComponents().get_test_job_mgr().abort_jobs(task_name)
+
+        self._response = "Jobs abort process started"
+        return index + 1 if index < len(self._args) else index
+
+    @staticmethod
+    def _abort_jobs_help() -> str:
+        return ("syntax: --abort_jobs TASK_NAME\n\t"
+                "Command immediately stops all ongoing TestJobs,"
+                "where TASK_NAME if provided links to specific TestTask jobs")
+
+    def _switch_jobs_block(self, index: int) -> int:
+        [index, options] = self.parse_options(index)
+
+        block_type = CliTranslator.extract_option_guarded(options, "type")
+        task_name = CliTranslator.extract_option_not_guarded(options, "host_name")
+
+        try:
+            converted = BlockType[block_type]
+        except Exception as e:
+            raise Exception(f"Unable to parse block type \"{e}\"")
+
+        WorkerComponents().get_test_job_mgr().block_new_jobs(converted, task_name)
+
+        self._response = f"Correctly stopped new jobs for {"every task" if task_name == "" else task_name}"
+        return index
+
+    @staticmethod
+    def _switch_jobs_block_help() -> str:
+        return ("command syntax: --switch_jobs_block \"key1=value1\" \"key2=value2\" ...\n"
+                "Mandatory options:\n"
+                "\ttype - defines whether block should be enable or disabled provide \"enable\" or \"disable\"\n"
+                "Not mandatory options:\n"
+                "\thost_name - if empty all jobs are blocked if not only mentioned TestTask jobs are blocked\n")
+
+    def _query_worker_state(self, index: int) -> int:
+        worker_process_status = ("Worker state: Healthy\n"
+                                 "RAM assigned in MB: NOT IMPLEMENTED\n"
+                                 "CPUs assigned: NOT IMPLEMENTED\n"
+                                 "Worker last harden: NOT IMPLEMENTED\n"
+                                 "Worker repo size: NOT IMPLEMENTED\n"
+                                 f"Worker uptime: {WorkerComponents().get_worker_process().get_uptime_str()}\n"
+                                 f"Settings loaded: {SettingsLoader().get_settings().model_dump_json()}\n")
+
+        test_jobs_mgr_status = ("Contained tasks: NOT IMPLEMENTED\n"
+                                "Ongoing jobs count: NOT IMPLEMENTED\n"
+                                "Completed jobs count: NOT IMPLEMENTED\n"
+                                "Synced jobs count: NOT IMPLEMENTED\n"
+                                "Blocked tasks: NOT IMPLEMENTED\n"
+                                "Average job time: NOT IMPLEMENTED\n")
+
+        connectivity_mgr_status = ("Registration status: NOT IMPLEMENTED\n"
+                                   "Registered name: NOT IMPLEMENTED\n"
+                                   "Session token: NOT IMPLEMENTED\n"
+                                   "Connection status: NOT IMPLEMENTED\n")
+
+        self._response = f"\n{worker_process_status}\n{test_jobs_mgr_status}\n{connectivity_mgr_status}"
+
+        return index
+
+    @staticmethod
+    def _query_worker_state_help() -> str:
+        return ("command syntax: --query_worker_state\n\t"
+                "Command simply displays all parameters of deployed worker")
+
+    # ------------------------------
+    # Commands registration
+    # ------------------------------
 
     BaseCli.add_command(
         CommandCli(CommandType.BACKEND, "connect", _connect_command, _connect_help))
@@ -169,3 +261,9 @@ class CliTranslator(BaseCli):
         CommandCli(CommandType.BACKEND, "set_log_level", _set_log_level_command, _set_log_level_help))
     BaseCli.add_command(
         CommandCli(CommandType.BACKEND, "stop_worker", _stop_command, _stop_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "abort_worker", _abort_command, _abort_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "switch_jobs_block", _switch_jobs_block, _switch_jobs_block_help))
+    BaseCli.add_command(
+        CommandCli(CommandType.BACKEND, "query_worker_state", _query_worker_state, _query_worker_state_help))
