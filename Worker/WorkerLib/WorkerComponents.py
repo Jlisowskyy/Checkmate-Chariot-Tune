@@ -24,18 +24,18 @@ class WorkerComponents(metaclass=GlobalObj):
     # Class fields
     # ------------------------------
 
-    _workerCli: Union['NetConnectionMgr', None]
-    _testJobMgr: Union['TestJobMgr', None]
-    _workerProcess: Union['WorkerProcess', None]
+    _connection_mgr: Union['NetConnectionMgr', None]
+    _test_job_mgr: Union['TestJobMgr', None]
+    _worker_process: Union['WorkerProcess', None]
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
     def __init__(self):
-        self._workerCli = None
-        self._testJobMgr = None
-        self._workerProcess = None
+        self._connection_mgr = None
+        self._test_job_mgr = None
+        self._worker_process = None
 
     # ------------------------------
     # Class interaction
@@ -46,24 +46,26 @@ class WorkerComponents(metaclass=GlobalObj):
         from .TestJobsMgr import TestJobMgr
         from .WorkerProcess import WorkerProcess
 
-        self._workerProcess = WorkerProcess()
-        self._testJobMgr = TestJobMgr()
-        self._workerCli = NetConnectionMgr()
+        self._worker_process = WorkerProcess()
+        self._test_job_mgr = TestJobMgr()
+        self._connection_mgr = NetConnectionMgr()
 
     def destroy_components(self) -> None:
-        if self._testJobMgr:
-            self._testJobMgr.destroy()
-        if self._workerProcess:
-            self._workerProcess.destroy()
+        if self._test_job_mgr:
+            self._test_job_mgr.destroy()
+        if self._worker_process:
+            self._worker_process.destroy()
+        if self._connection_mgr:
+            self._connection_mgr.destroy()
 
     def is_inited(self) -> bool:
-        return self._workerCli is not None and self._testJobMgr is not None and self._workerProcess is not None
+        return self._connection_mgr is not None and self._test_job_mgr is not None and self._worker_process is not None
 
-    def get_worker_cli(self) -> Union['NetConnectionMgr', None]:
-        return self._workerCli
+    def get_conn_mgr(self) -> Union['NetConnectionMgr', None]:
+        return self._connection_mgr
 
     def get_test_job_mgr(self) -> Union['TestJobMgr', None]:
-        return self._testJobMgr
+        return self._test_job_mgr
 
     def get_worker_process(self) -> Union['WorkerProcess', None]:
-        return self._workerProcess
+        return self._worker_process

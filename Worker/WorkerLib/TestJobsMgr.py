@@ -1,6 +1,6 @@
 from Utils.Logger import Logger, LogLevel
 from .TestTask import TestTask
-from .WorkerComponents import StopType, BlockType
+from .WorkerComponents import StopType, BlockType, WorkerComponents
 
 
 class TestJobMgr:
@@ -23,7 +23,7 @@ class TestJobMgr:
         self._ongoing_tasks = dict[str, TestTask]()
 
     def destroy(self) -> None:
-        self.process_stop()
+        self.destroy_ongoing_jobs()
 
     # ------------------------------
     # Class interaction
@@ -45,7 +45,7 @@ class TestJobMgr:
                           f"{f"for task: {task_name}" if task_name != "" else "for all tasks"}",
                           LogLevel.LOW_FREQ)
 
-    def process_stop(self) -> None:
+    def destroy_ongoing_jobs(self) -> None:
         # TODO: there might be a race
         self._are_new_jobs_globally_blocked = True
 
@@ -84,7 +84,7 @@ class TestJobMgr:
     def _log_msg(self, msg: str) -> str:
         Logger().log_info(msg, LogLevel.HIGH_FREQ)
 
-        return TestJobMgr._prepare_success_response()
+        return WorkerComponents().get_conn_mgr().prepare_success_response()
 
     def _stop_working_gently(self) -> str:
         pass

@@ -76,7 +76,7 @@ class WorkerProcess:
 
         return ', '.join(uptime_str)
 
-    def start_processing(self):
+    def start_processing(self) -> None:
         self._should_threads_work = True
 
         self._stop_sem = Semaphore(0)
@@ -86,8 +86,11 @@ class WorkerProcess:
         self._cli_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._cli_thread.start()
 
-    def wait_for_stop(self):
+    def wait_for_stop(self) -> None:
         self._stop_sem.acquire()
+
+    def stop_processing(self) -> None:
+        self._stop_sem.release()
 
     # ------------------------------
     # Private methods
@@ -107,11 +110,13 @@ class WorkerProcess:
                 react_str = f"Trying to restart the function. Remaining retries: {tries}" if tries > 0 \
                     else "All retries have been used. Aborting execution..."
                 Logger().log_error(f"Thread func: {func.__name__} failed: {e}. {react_str}", LogLevel.LOW_FREQ)
+                time.sleep(0.1)
 
         Logger().log_info("Thread stopped...", LogLevel.LOW_FREQ)
 
     def _worker_cli_thread(self) -> None:
         self._cli_socket.bind(("localhost", SettingsLoader().get_settings().process_port))
+        self._cli_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._cli_socket.listen()
         self._cli_socket.settimeout(5)
 
@@ -130,12 +135,12 @@ class WorkerProcess:
             try:
                 data = conn.recv(1024).decode()
             except Exception as e:
-                Logger().log_error(f"Failed to translate message: {data}. Root of the problem: {e}", LogLevel.LOW_FREQ)
+                Logger().log_error(f"Failed to recv message. Root of the problem: {e}", LogLevel.LOW_FREQ)
                 continue
 
             Logger().log_info(f"Received command payload: {data}", LogLevel.MEDIUM_FREQ)
             try:
-                cli_translator = CliTranslator(WorkerComponents().get_worker_cli(), self._stop_sem)
+                cli_translator = CliTranslator()
                 cli_translator.parse_args(json.loads(data)["args"])
                 response = f"SUCCESS: {cli_translator.get_response()}"
             except Exception as e:

@@ -1,5 +1,4 @@
 import time
-from threading import Semaphore
 
 import requests
 
@@ -18,19 +17,14 @@ class CliTranslator(BaseCli):
     # Class fields
     # ------------------------------
 
-    _worker_cli: NetConnectionMgr
-    _stop_sem: Semaphore
-
     _response: str
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, worker_cli: NetConnectionMgr, stop_sem: Semaphore):
+    def __init__(self):
         super().__init__()
-        self._worker_cli = worker_cli
-        self._stop_sem = stop_sem
         self._response = "FAILED"
 
     # ------------------------------
@@ -63,7 +57,7 @@ class CliTranslator(BaseCli):
     def _connect_command(self, index: int) -> int:
         [index, options] = self.parse_options(index)
 
-        if self._worker_cli.is_registered():
+        if WorkerComponents().get_conn_mgr().is_registered():
             raise Exception("Worker is already registered to manager")
 
         host = CliTranslator.extract_option_guarded(options, "host")
@@ -83,7 +77,7 @@ class CliTranslator(BaseCli):
         url = f"{host}/worker/register"
         response = NetConnectionMgr.send_request(requests.post, url, model)
 
-        self._worker_cli.register(host, model, WorkerRegistration.model_validate(response.json()))
+        WorkerComponents().get_conn_mgr().register(host, model, WorkerRegistration.model_validate(response.json()))
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
         self._response = "Correctly registered worker"
@@ -104,13 +98,13 @@ class CliTranslator(BaseCli):
     def _unregister_command(self, index: int) -> int:
         retries = 0
 
-        if not self._worker_cli.is_registered():
+        if not WorkerComponents().get_conn_mgr().is_registered():
             raise Exception("Worker is not registered to any manager")
 
-        request = self._worker_cli.prepare_unregister_request()
-        host = self._worker_cli.get_connected_host()
+        request = WorkerComponents().get_conn_mgr().prepare_unregister_request()
+        host = WorkerComponents().get_conn_mgr().get_connected_host()
         url = f"{host}/worker/unregister"
-        self._worker_cli.unregister()
+        WorkerComponents().get_conn_mgr().unregister()
         response = None
 
         while retries < SettingsLoader().get_settings().unregister_retries:
@@ -163,7 +157,7 @@ class CliTranslator(BaseCli):
         return help_str
 
     def _stop_command(self, index: int) -> int:
-        self._stop_sem.release()
+        WorkerComponents().get_worker_process().stop_processing()
         self._response = "Initialized worker stop process"
         return index
 
@@ -173,7 +167,7 @@ class CliTranslator(BaseCli):
                 "Gently shutdowns background worker process")
 
     def _abort_command(self, index: int) -> int:
-        self._stop_sem.release()
+        WorkerComponents().get_worker_process().stop_processing()
         self._response = "Initialized worker abort process"
         return index
 
@@ -226,7 +220,7 @@ class CliTranslator(BaseCli):
                                  "Worker last harden: NOT IMPLEMENTED\n"
                                  "Worker repo size: NOT IMPLEMENTED\n"
                                  f"Worker uptime: {WorkerComponents().get_worker_process().get_uptime_str()}\n"
-                                 f"Settings loaded: {SettingsLoader().get_settings().model_dump_json()}\n")
+                                 f"Settings loaded: {SettingsLoader().get_settings().model_dump_json(indent=2)}\n")
 
         test_jobs_mgr_status = ("Contained tasks: NOT IMPLEMENTED\n"
                                 "Ongoing jobs count: NOT IMPLEMENTED\n"

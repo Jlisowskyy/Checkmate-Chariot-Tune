@@ -31,12 +31,15 @@ class NetConnectionMgr:
     # Class creation
     # ------------------------------
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._session_token = None
         self._session_host = None
         self._session_model = None
         self._connection_thread = None
         self._should_conn_thread_work = False
+
+    def destroy(self) -> None:
+        pass
 
     # ------------------------------
     # Class interaction
@@ -58,7 +61,7 @@ class NetConnectionMgr:
             self.abort_connection_sync()
 
         self._should_conn_thread_work = True
-        self._are_new_jobs_globally_blocked = False
+        # self._are_new_jobs_globally_blocked = False TODO
         self._connection_thread = Thread(target=self._connection_thread, args=host)
 
         Logger().log_info("Starting connection with manager", LogLevel.LOW_FREQ)
@@ -171,7 +174,7 @@ class NetConnectionMgr:
         return attempt + 1
 
     def _authenticate(self, sc) -> None:
-        auth = WorkerComponents().get_worker_cli().prepare_worker_auth()
+        auth = WorkerComponents().get_conn_mgr().prepare_worker_auth()
 
         Logger().log_info(f"Sending auth msg to manager: {auth}", LogLevel.MEDIUM_FREQ)
         sc.send(auth)
@@ -205,5 +208,5 @@ class NetConnectionMgr:
                 attempt += 1
 
     @staticmethod
-    def _prepare_success_response() -> str:
+    def prepare_success_response() -> str:
         return json.dumps({"status": "SUCCESS"})

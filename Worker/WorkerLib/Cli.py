@@ -101,6 +101,10 @@ class Cli(BaseCli):
                     Logger().log_warning(msg, LogLevel.MEDIUM_FREQ)
                     time.sleep(1)
 
+                continue
+
+            break
+
     @staticmethod
     def _format_error_status(status) -> str:
         if os.WIFEXITED(status):
