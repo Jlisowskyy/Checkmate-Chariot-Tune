@@ -1,5 +1,7 @@
 from enum import IntEnum
+
 from Utils.GlobalObj import GlobalObj
+
 
 class StopType(IntEnum):
     gentle_stop = 0

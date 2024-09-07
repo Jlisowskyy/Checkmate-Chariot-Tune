@@ -1,7 +1,8 @@
+import os
 from threading import Thread, Lock
 from time import sleep
-import os
 from typing import Type, Callable
+
 from pydantic import BaseModel
 
 from .GlobalObj import GlobalObj

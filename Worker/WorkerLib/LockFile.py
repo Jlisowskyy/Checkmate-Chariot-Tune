@@ -2,6 +2,7 @@ import os
 import time
 
 from psutil import pid_exists
+
 from Utils.Logger import Logger, LogLevel
 
 LOCK_FILE_PATH = f"/tmp/Checkmate-Chariot-Worker.lock"

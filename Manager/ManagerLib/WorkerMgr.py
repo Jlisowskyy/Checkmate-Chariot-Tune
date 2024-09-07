@@ -1,13 +1,13 @@
-from ...Utils.GlobalObj import GlobalObj
-from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
+import secrets
+import time
+from threading import Thread, Lock
+
+from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel, WorkerUnregister
+from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
+from ...Utils.GlobalObj import GlobalObj
 from ...Utils.Logger import Logger, LogLevel
 from ...Utils.SettingsLoader import SettingsLoader
-from .ErrorTable import ErrorTable
-
-from threading import Thread, Lock
-import time
-import secrets
 
 MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_build_config("MIN_WORKER_VERSION"))
 

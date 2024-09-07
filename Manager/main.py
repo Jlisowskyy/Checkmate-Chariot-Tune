@@ -1,5 +1,6 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 
 from .Api import Orchestrator, Worker
 from .ManagerLib.main import startup, cleanup

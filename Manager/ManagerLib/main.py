@@ -1,12 +1,12 @@
+import os
+
+from .ManagerSettings import ManagerSettings, update_logger_freq
 from .TestJobMgr import TestJobMgr
 from .TestTaskMgr import TestTaskMgr
 from .WorkerMgr import WorkerMgr
-from ...Utils.SettingsLoader import SettingsLoader
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Utils.Logger import Logger, LogLevel
-from .ManagerSettings import ManagerSettings, update_logger_freq
-
-import os
+from ...Utils.SettingsLoader import SettingsLoader
 
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 

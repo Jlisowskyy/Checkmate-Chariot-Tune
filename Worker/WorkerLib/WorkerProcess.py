@@ -9,7 +9,6 @@ from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .CliTranslator import CliTranslator
 from .LockFile import LockFile, LOCK_FILE_PATH
-from .WorkerComponents import WorkerComponents
 
 
 class WorkerProcess:

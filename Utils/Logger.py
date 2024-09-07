@@ -1,11 +1,11 @@
+import os
 import time
-
-from .GlobalObj import GlobalObj
-from threading import Lock, Thread, get_ident
-from typing import TextIO
 from datetime import datetime
 from enum import IntEnum
-import os
+from threading import Lock, Thread, get_ident
+from typing import TextIO
+
+from .GlobalObj import GlobalObj
 
 
 class LogLevel(IntEnum):

@@ -20,4 +20,3 @@ class TestJobMgr(metaclass=GlobalObj):
     # ------------------------------
     # Private methods
     # ------------------------------
-

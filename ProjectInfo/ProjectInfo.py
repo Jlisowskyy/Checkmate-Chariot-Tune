@@ -1,6 +1,5 @@
 import json
 import os
-from enum import Enum
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 VERSIONS_PATH = f"{FILE_PATH}/versions.json"

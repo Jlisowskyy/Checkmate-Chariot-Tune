@@ -1,5 +1,6 @@
-from ...Utils.Logger import LogLevel, Logger
 from pydantic import BaseModel
+
+from ...Utils.Logger import LogLevel, Logger
 
 
 class ManagerSettings(BaseModel):

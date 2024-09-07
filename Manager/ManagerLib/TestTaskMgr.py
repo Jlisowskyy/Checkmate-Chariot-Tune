@@ -20,4 +20,3 @@ class TestTaskMgr(metaclass=GlobalObj):
     # ------------------------------
     # Private methods
     # ------------------------------
-

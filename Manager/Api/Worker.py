@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket
-from ...Models.WorkerModels import *
-from ...Models.GlobalModels import *
+
 from ..ManagerLib.WorkerMgr import WorkerMgr
+from ...Models.WorkerModels import *
 from ...Utils.Logger import Logger, LogLevel
 
 router = APIRouter()
@@ -9,7 +9,8 @@ router = APIRouter()
 
 @router.post("/worker/register", tags=["worker"])
 async def register(worker: WorkerModel) -> WorkerRegistration:
-    Logger().log_info(f"Received worker register request with payload: {worker.model_dump_json()}", LogLevel.MEDIUM_FREQ)
+    Logger().log_info(f"Received worker register request with payload: {worker.model_dump_json()}",
+                      LogLevel.MEDIUM_FREQ)
     result, token = WorkerMgr().register(worker)
     response = WorkerRegistration(result=CommandResult(result=result.name), session_token=token)
     Logger().log_info(f"Sending worker register response: {response}", LogLevel.MEDIUM_FREQ)

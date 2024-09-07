@@ -1,6 +1,6 @@
 from fastapi import APIRouter
+
 from ...Models.OrchestratorModels import *
-from ...Models.GlobalModels import *
 
 router = APIRouter()
 

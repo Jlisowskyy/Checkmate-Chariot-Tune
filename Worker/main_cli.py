@@ -1,9 +1,10 @@
-from Utils.Logger import Logger, LogLevel
-from ProjectInfo.ProjectInfo import ProjectInfoInstance
-from .WorkerLib.Cli import Cli
-from Utils.SettingsLoader import SettingsLoader
-from .WorkerLib.WorkerSettings import WorkerSettings
 import os
+
+from ProjectInfo.ProjectInfo import ProjectInfoInstance
+from Utils.Logger import Logger, LogLevel
+from Utils.SettingsLoader import SettingsLoader
+from .WorkerLib.Cli import Cli
+from .WorkerLib.WorkerSettings import WorkerSettings
 
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
