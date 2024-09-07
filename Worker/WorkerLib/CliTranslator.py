@@ -215,8 +215,10 @@ class CliTranslator(BaseCli):
 
     def _query_worker_state(self, index: int) -> int:
         worker_process_status = ("Worker state: Healthy\n"
-                                 "RAM assigned in MB: NOT IMPLEMENTED\n"
-                                 "CPUs assigned: NOT IMPLEMENTED\n"
+                                 f"RAM assigned in MB: {WorkerComponents().get_conn_mgr().get_max_mem_str()}\n"
+                                 f"RAM usage: NOT IMPLEMENTED\n"
+                                 f"CPUs assigned: {WorkerComponents().get_conn_mgr().get_max_cpus()}\n"
+                                 f"CPUs utilized: NOT IMPLEMENTED\n"
                                  "Worker last harden: NOT IMPLEMENTED\n"
                                  "Worker repo size: NOT IMPLEMENTED\n"
                                  f"Worker uptime: {WorkerComponents().get_worker_process().get_uptime_str()}\n"
@@ -229,9 +231,9 @@ class CliTranslator(BaseCli):
                                 "Blocked tasks: NOT IMPLEMENTED\n"
                                 "Average job time: NOT IMPLEMENTED\n")
 
-        connectivity_mgr_status = ("Registration status: NOT IMPLEMENTED\n"
-                                   "Registered name: NOT IMPLEMENTED\n"
-                                   "Session token: NOT IMPLEMENTED\n"
+        connectivity_mgr_status = (f"Registration status: {WorkerComponents().get_conn_mgr().get_registered_str()}\n"
+                                   f"Registered name: {WorkerComponents().get_conn_mgr().get_registered_name()}\n"
+                                   f"Session token: {WorkerComponents().get_conn_mgr().get_registered_token()}\n"
                                    "Connection status: NOT IMPLEMENTED\n")
 
         self._response = f"\n{worker_process_status}\n{test_jobs_mgr_status}\n{connectivity_mgr_status}"

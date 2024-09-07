@@ -24,6 +24,7 @@ class NetConnectionMgr:
 
     _connection_thread: Thread | None
     _should_conn_thread_work: bool
+    _is_connected_and_authenticated: bool
 
     # TODO: KA thread
 
@@ -37,6 +38,7 @@ class NetConnectionMgr:
         self._session_model = None
         self._connection_thread = None
         self._should_conn_thread_work = False
+        self._is_connected_and_authenticated = False
 
     def destroy(self) -> None:
         pass
@@ -44,6 +46,42 @@ class NetConnectionMgr:
     # ------------------------------
     # Class interaction
     # ------------------------------
+
+    def get_max_mem_str(self) -> str:
+        return str(self._session_model.memoryMB) if self._session_model is not None else "UNSPECIFIED"
+
+    def get_max_mem_mb(self) -> int:
+        return self._session_model.memoryMB if self._session_model is not None else 0
+
+    def get_max_cpus(self) -> int:
+        return self._session_model.cpus if self._session_model is not None else 0
+
+    def get_max_cpus_str(self) -> str:
+        return str(self._session_model.cpus) if self._session_model is not None else "UNSPECIFIED"
+
+    def get_registered_name(self) -> str:
+        return self._session_model.name if self._session_model is not None else "UNREGISTERED"
+
+    def get_registered_token(self) -> str:
+        return str(hex(self._session_token)) if self._session_token is not None else "UNREGISTERED"
+
+    def get_registered_str(self) -> str:
+        return "REGISTERED" if self.is_registered() else "NOT REGISTERED"
+
+    def get_connection_str(self) -> str:
+        return "CONNECTED" if self.is_connected() else "NOT CONNECTED"
+
+    def get_mem_usage(self) -> int:
+        raise NotImplementedError("Method not implemented")
+
+    def gem_cpu_usage(self) -> int:
+        raise NotImplementedError("Method not implemented")
+
+    def get_cpu_usage_str(self) -> str:
+        raise NotImplementedError("Method not implemented")
+
+    def get_mem_usage_str(self) -> str:
+        raise NotImplementedError("Method not implemented")
 
     def abort_connection_sync(self) -> None:
         Logger().log_info("Started connection with Manager abort", LogLevel.LOW_FREQ)
@@ -68,7 +106,7 @@ class NetConnectionMgr:
         self._connection_thread.start()
 
     def is_connected(self) -> bool:
-        return self._session_host is not None
+        return self._is_connected_and_authenticated
 
     def is_registered(self) -> bool:
         return self._session_token is not None and self._session_model is not None
@@ -147,6 +185,9 @@ class NetConnectionMgr:
             except Exception as e:
                 Logger().log_error(f"Failed to authenticate with Manager: {e}", LogLevel.LOW_FREQ)
                 break
+
+            # save connected state
+            self._is_connected_and_authenticated = True
 
             try:
                 msg = sc.recv()
