@@ -3,6 +3,7 @@ import time
 from threading import Thread, Lock
 from fastapi import WebSocket
 
+from Models.WorkerModels import WorkerAuth
 from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel, WorkerUnregister
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
@@ -10,7 +11,7 @@ from ...Utils.GlobalObj import GlobalObj
 from ...Utils.Logger import Logger, LogLevel
 from ...Utils.SettingsLoader import SettingsLoader
 
-MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_build_config("MIN_WORKER_VERSION"))
+MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_bu1ild_config("MIN_WORKER_VERSION"))
 
 
 class Worker:
@@ -96,7 +97,7 @@ class WorkerMgr(metaclass=GlobalObj):
 
         return [ErrorTable.SUCCESS, token]
 
-    def unregister(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
+    def unregister(self, unregister_request: WorkerUnregister) -> ErrorTable:
         self._move_workers()  # Apply early queue processing
 
         with self._workers_name_lookup_lock:
@@ -108,7 +109,7 @@ class WorkerMgr(metaclass=GlobalObj):
                     return self.unregister_unlocked(unregister_request)
         return ErrorTable.WORKER_NOT_FOUND
 
-    def unregister_unlocked(self, unregister_request: WorkerUnregister) -> [ErrorTable]:
+    def unregister_unlocked(self, unregister_request: WorkerUnregister) -> ErrorTable:
         if self._workers[unregister_request.name].session_token == unregister_request.session_token:
             del self._workers[unregister_request.name]
             Logger().log_info(f"Worker: {unregister_request.name} unregistered", LogLevel.MEDIUM_FREQ)
@@ -116,7 +117,12 @@ class WorkerMgr(metaclass=GlobalObj):
         return ErrorTable.INVALID_TOKEN
 
     def worker_loop(self, socket: WebSocket):
-        pass
+        # TODO: ADD LOGIC
+        raise NotImplementedError()
+
+    def bump_ka(self, worker_auth: WorkerAuth) -> ErrorTable:
+        # TODO: ADD LOGIC
+        raise NotImplementedError()
 
     # ------------------------------
     # Private methods
