@@ -1,6 +1,8 @@
 import secrets
 import time
 from threading import Thread, Lock
+from fastapi import WebSocket
+
 
 from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel, WorkerUnregister
@@ -113,6 +115,9 @@ class WorkerMgr(metaclass=GlobalObj):
             Logger().log_info(f"Worker: {unregister_request.name} unregistered", LogLevel.MEDIUM_FREQ)
             return ErrorTable.SUCCESS
         return ErrorTable.INVALID_TOKEN
+
+    def worker_loop(self, socket: WebSocket):
+        pass
 
     # ------------------------------
     # Private methods

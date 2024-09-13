@@ -1,3 +1,4 @@
+from Utils.Logger import Logger, LogLevel
 from ...Utils.GlobalObj import GlobalObj
 
 
@@ -10,8 +11,11 @@ class TestTaskMgr(metaclass=GlobalObj):
     # Class creation
     # ------------------------------
 
-    def __init__(self, workers: int):
-        print(f"workers: {workers}")
+    def __init__(self) -> None:
+        Logger().log_info("Test Task Manager correctly initialized", LogLevel.LOW_FREQ)
+
+    def destroy(self) -> None:
+        Logger().log_info("Test Task Manager correctly destroyed", LogLevel.LOW_FREQ)
 
     # ------------------------------
     # Class interaction
