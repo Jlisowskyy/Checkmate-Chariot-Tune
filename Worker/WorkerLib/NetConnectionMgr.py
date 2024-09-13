@@ -1,6 +1,7 @@
 import json
 import time
 from threading import Thread
+from time import sleep
 
 import requests
 import websockets
@@ -27,7 +28,8 @@ class NetConnectionMgr:
     _should_conn_thread_work: bool
     _is_connected_and_authenticated: bool
 
-    # TODO: KA thread
+    _ka_thread: Thread | None
+    _should_ka_thread_work: bool
 
     # ------------------------------
     # Class creation
@@ -42,6 +44,9 @@ class NetConnectionMgr:
         self._socket_mgr = None
         self._should_conn_thread_work = False
         self._is_connected_and_authenticated = False
+
+        self._ka_thread = None
+        self._should_ka_thread_work = False
 
     def destroy(self) -> None:
         if WorkerComponents().get_worker_process().get_stop_type() == StopType.abort_stop or not WorkerComponents().get_conn_mgr().is_registered():
@@ -58,7 +63,10 @@ class NetConnectionMgr:
             Logger().log_error(f"Failed to gently close connection with manager: {e}. Aborting...", LogLevel.LOW_FREQ)
             self.abort_connection_sync()
 
-
+        # Abort ka thread
+        self._should_ka_thread_work = False
+        self._ka_thread.join()
+        self._ka_thread = None
 
     # ------------------------------
     # Class interaction
@@ -189,11 +197,11 @@ class NetConnectionMgr:
         if result.result != "SUCCESS":
             raise Exception(f"Failed on Manager end-point with error: {result.result}")
 
-    def prepare_worker_auth(self) -> str:
+    def prepare_worker_auth(self) -> BaseModel:
         if not self.is_registered():
             raise Exception("Worker is not registered!")
 
-        return WorkerAuth(session_token=self._session_token, name=self._session_model.name).model_dump_json()
+        return WorkerAuth(session_token=self._session_token, name=self._session_model.name)
 
     @staticmethod
     def send_request(command_type, url: str, model: BaseModel) -> requests.Response:
@@ -212,6 +220,39 @@ class NetConnectionMgr:
     # ------------------------------
     # Private methods
     # ------------------------------
+
+    def _ka_thread_func(self) -> None:
+        execution_time = 0
+
+        while self._should_ka_thread_work:
+            ka_interval = SettingsLoader().get_settings().ka_interval
+            sleep(max(0, ka_interval - execution_time))
+            prev_run_execution_time = execution_time
+            execution_time = max(0, execution_time - ka_interval)
+
+            if not self.is_connected():
+                continue
+
+            timestamp_before = time.perf_counter_ns()
+            auth = self.prepare_worker_auth()
+
+            try:
+                Logger().log_info(
+                    f"Sending KA to currently connected host,"
+                    f" after previous KA which processing took {prev_run_execution_time}...",
+                    LogLevel.MEDIUM_FREQ)
+
+                url = f"{self.get_connected_host()}/worker/bump_ka"
+                response = self.send_request(requests.post, url, auth)
+                NetConnectionMgr.validate_response(response.json())
+
+                Logger().log_info("KA correctly sent to current host!", LogLevel.MEDIUM_FREQ)
+            except Exception as e:
+                Logger().log_error(f"Failed to send KA to the manager: {e}", LogLevel.MEDIUM_FREQ)
+
+            timestamp_after = time.perf_counter_ns()
+
+            execution_time += timestamp_after - timestamp_before
 
     # TODO:
     def _register_internal(self) -> None:
@@ -264,7 +305,7 @@ class NetConnectionMgr:
         return attempt + 1
 
     def _authenticate(self) -> None:
-        auth = WorkerComponents().get_conn_mgr().prepare_worker_auth()
+        auth = WorkerComponents().get_conn_mgr().prepare_worker_auth().model_dump_json()
 
         Logger().log_info(f"Sending auth msg to manager: {auth}", LogLevel.MEDIUM_FREQ)
         self._socket_mgr.send(auth)

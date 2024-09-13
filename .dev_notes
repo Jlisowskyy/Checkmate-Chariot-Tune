@@ -1,5 +1,3 @@
-add functional stops/aborts process/jobs -> add KA -> GO TO MANAGER IMPLEMENT
-
 MANAGER IMPLEMENT:
 implement auth -> implement KA -> implement Test Task class in mgr and derive what is needed -> implement Init to Worker
 -> GOTO JOBS IMPLEMENT
