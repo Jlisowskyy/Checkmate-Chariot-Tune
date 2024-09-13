@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerModel, WorkerAuth
+from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from Worker.WorkerLib.WorkerComponents import WorkerComponents, StopType
@@ -30,6 +31,7 @@ class NetConnectionMgr:
 
     _ka_thread: Thread | None
     _should_ka_thread_work: bool
+    _last_ka_time_stamp: int
 
     # ------------------------------
     # Class creation
@@ -48,6 +50,7 @@ class NetConnectionMgr:
 
         # Prepare KA thread
         self._should_ka_thread_work = True
+        self._last_ka_time_stamp = 0
         self._ka_thread = Thread(target=self._ka_thread_func)
         self._ka_thread.start()
 
@@ -110,6 +113,15 @@ class NetConnectionMgr:
 
     def get_mem_usage_str(self) -> str:
         raise NotImplementedError("Method not implemented")
+
+    def get_last_ka_str(self) -> str:
+        if self._last_ka_time_stamp == 0:
+            return "KA NOT SEND YET"
+
+        time_from_last_ka_ns = time.perf_counter_ns() - self._last_ka_time_stamp
+        time_from_last_ka_s = convert_ns_to_s(time_from_last_ka_ns)
+
+        return get_pretty_time_spent_string_from_seconds(time_from_last_ka_s)
 
     def abort_connection_sync(self) -> None:
         Logger().log_info("Started connection with Manager abort", LogLevel.LOW_FREQ)
@@ -255,6 +267,7 @@ class NetConnectionMgr:
 
             timestamp_after = time.perf_counter_ns()
 
+            self._last_ka_time_stamp = timestamp_after
             execution_time += timestamp_after - timestamp_before
 
     # TODO:

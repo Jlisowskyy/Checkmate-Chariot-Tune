@@ -1,7 +1,6 @@
 from fastapi import APIRouter, WebSocket
 
 from ..ManagerLib.ManagerComponents import ManagerComponents
-from ..ManagerLib.WorkerMgr import WorkerMgr
 from ...Models.WorkerModels import *
 from ...Utils.Logger import Logger, LogLevel
 
@@ -32,4 +31,3 @@ async def unregister(unregisterRequest: WorkerUnregister) -> CommandResult:
 async def websocket_endpoint(websocket: WebSocket):
     with await websocket.accept() as websocket:
         ManagerComponents().get_worker_mgr().worker_loop(websocket)
-

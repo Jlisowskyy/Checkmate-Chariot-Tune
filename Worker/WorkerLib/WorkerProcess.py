@@ -1,4 +1,3 @@
-import errno
 import json
 import socket
 import time
@@ -10,6 +9,7 @@ from Utils.SettingsLoader import SettingsLoader
 from .CliTranslator import CliTranslator
 from .LockFile import LockFile, LOCK_FILE_PATH
 from .WorkerComponents import StopType
+from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 
 
 class WorkerProcess:
@@ -60,25 +60,10 @@ class WorkerProcess:
     # ------------------------------
 
     def get_uptime_str(self) -> str:
-        uptime_seconds = (time.perf_counter_ns() - self._creation_time) / (1000 * 1000 * 1000)
+        uptime_ns = time.perf_counter_ns() - self._creation_time
+        uptime_s = convert_ns_to_s(uptime_ns)
 
-        days = int(uptime_seconds // (24 * 3600))
-        hours = int((uptime_seconds % (24 * 3600)) // 3600)
-        minutes = int((uptime_seconds % 3600) // 60)
-        seconds = int(uptime_seconds % 60)
-
-        # Pretty print the uptime
-        uptime_str = []
-        if days > 0:
-            uptime_str.append(f"{days} day{'s' if days > 1 else ''}")
-        if hours > 0:
-            uptime_str.append(f"{hours} hour{'s' if hours > 1 else ''}")
-        if minutes > 0:
-            uptime_str.append(f"{minutes} minute{'s' if minutes > 1 else ''}")
-        if seconds > 0 or len(uptime_str) == 0:
-            uptime_str.append(f"{seconds} second{'s' if seconds > 1 else ''}")
-
-        return ', '.join(uptime_str)
+        return get_pretty_time_spent_string_from_seconds(uptime_s)
 
     def start_processing(self) -> None:
         self._should_threads_work = True

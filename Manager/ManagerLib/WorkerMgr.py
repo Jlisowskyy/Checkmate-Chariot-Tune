@@ -3,7 +3,6 @@ import time
 from threading import Thread, Lock
 from fastapi import WebSocket
 
-
 from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel, WorkerUnregister
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
