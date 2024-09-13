@@ -8,8 +8,6 @@ class TestJobMgr:
     # Class fields
     # ------------------------------
 
-    _stop_type: StopType
-
     _are_new_jobs_globally_blocked: bool
     _ongoing_tasks: dict[str, TestTask]
 
@@ -18,7 +16,6 @@ class TestJobMgr:
     # ------------------------------
 
     def __init__(self) -> None:
-        self._stop_type = StopType.gentle_stop
         self._are_new_jobs_globally_blocked = True
         self._ongoing_tasks = dict[str, TestTask]()
 
@@ -28,9 +25,6 @@ class TestJobMgr:
     # ------------------------------
     # Class interaction
     # ------------------------------
-
-    def set_stop_type(self, stop_type: StopType) -> None:
-        self._stop_type = stop_type
 
     # task_name == "" => stop all
     def abort_jobs(self, task_name: str = "") -> None:
@@ -48,13 +42,14 @@ class TestJobMgr:
     def destroy_ongoing_jobs(self) -> None:
         # TODO: there might be a race
         self._are_new_jobs_globally_blocked = True
+        stop_type = WorkerComponents().get_worker_process().get_stop_type()
 
-        if self._stop_type == StopType.gentle_stop:
+        if stop_type == StopType.gentle_stop:
             self.stop_jobs()
-        elif self._stop_type == StopType.abort_stop:
+        elif stop_type == StopType.abort_stop:
             self.abort_jobs()
         else:
-            raise Exception(f"Received unknown stop type: {self._stop_type}")
+            raise Exception(f"Received unknown stop type: {stop_type}")
 
     # task_name == "" => block all tasks
     def block_new_jobs(self, block_type: BlockType, task_name: str = "") -> None:

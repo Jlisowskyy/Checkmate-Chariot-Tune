@@ -12,3 +12,4 @@ DISTANT TODO:
 - add some restore mechanism on fails
 
 BUGS:
+there are races probably on thread starting functions starters should be locked

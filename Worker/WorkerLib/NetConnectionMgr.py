@@ -10,7 +10,7 @@ from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerModel, WorkerAuth
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
-from Worker.WorkerLib.WorkerComponents import WorkerComponents
+from Worker.WorkerLib.WorkerComponents import WorkerComponents, StopType
 
 
 class NetConnectionMgr:
@@ -22,6 +22,7 @@ class NetConnectionMgr:
     _session_model: WorkerModel | None
     _session_host: str | None
 
+    _socket_mgr: websockets.WebSocketClientProtocol | None
     _connection_thread: Thread | None
     _should_conn_thread_work: bool
     _is_connected_and_authenticated: bool
@@ -38,11 +39,26 @@ class NetConnectionMgr:
         self._session_model = None
 
         self._connection_thread = None
+        self._socket_mgr = None
         self._should_conn_thread_work = False
         self._is_connected_and_authenticated = False
 
     def destroy(self) -> None:
-        pass
+        if WorkerComponents().get_worker_process().get_stop_type() == StopType.abort_stop or not WorkerComponents().get_conn_mgr().is_registered():
+            self.abort_connection_sync()
+            return
+
+        self._should_conn_thread_work = False
+        self._is_connected_and_authenticated = False
+        try:
+            WorkerComponents().get_conn_mgr().unregister()
+            self._connection_thread.join(SettingsLoader().get_settings().gentle_stop_timeout)
+
+        except Exception as e:
+            Logger().log_error(f"Failed to gently close connection with manager: {e}. Aborting...", LogLevel.LOW_FREQ)
+            self.abort_connection_sync()
+
+
 
     # ------------------------------
     # Class interaction
@@ -88,6 +104,11 @@ class NetConnectionMgr:
         Logger().log_info("Started connection with Manager abort", LogLevel.LOW_FREQ)
 
         self._should_conn_thread_work = False
+
+        if self._socket_mgr is not None:
+            self._socket_mgr.close()
+            self._socket_mgr = None
+
         self._connection_thread.join()
         self._connection_thread = None
 
@@ -192,6 +213,7 @@ class NetConnectionMgr:
     # Private methods
     # ------------------------------
 
+    # TODO:
     def _register_internal(self) -> None:
         pass
 
@@ -205,19 +227,19 @@ class NetConnectionMgr:
 
         return result
 
-    def _conn_msg_life_cycle(self, sc, attempt: int) -> int:
+    def _conn_msg_life_cycle(self, attempt: int) -> int:
+        try:
+            self._authenticate()
+        except Exception as e:
+            Logger().log_error(f"Failed to authenticate with Manager: {e}", LogLevel.LOW_FREQ)
+            return attempt + 1
+
+        # save connected state
+        self._is_connected_and_authenticated = True
+
         while self._should_conn_thread_work:
             try:
-                self._authenticate(sc)
-            except Exception as e:
-                Logger().log_error(f"Failed to authenticate with Manager: {e}", LogLevel.LOW_FREQ)
-                break
-
-            # save connected state
-            self._is_connected_and_authenticated = True
-
-            try:
-                msg = sc.recv()
+                msg = self._socket_mgr.recv()
                 Logger().log_info(f"Received message from test socket: {msg}", LogLevel.HIGH_FREQ)
                 attempt = 0
             except Exception as e:
@@ -233,7 +255,7 @@ class NetConnectionMgr:
                 break
 
             try:
-                sc.send(response)
+                self._socket_mgr.send(response)
                 Logger().log_info("Response to Manager correctly send", LogLevel.HIGH_FREQ)
             except Exception as e:
                 Logger().log_error(f"Failed to send response to Manager: {e}", LogLevel.LOW_FREQ)
@@ -241,13 +263,13 @@ class NetConnectionMgr:
 
         return attempt + 1
 
-    def _authenticate(self, sc) -> None:
+    def _authenticate(self) -> None:
         auth = WorkerComponents().get_conn_mgr().prepare_worker_auth()
 
         Logger().log_info(f"Sending auth msg to manager: {auth}", LogLevel.MEDIUM_FREQ)
-        sc.send(auth)
+        self._socket_mgr.send(auth)
 
-        rsp = sc.recv()
+        rsp = self._socket_mgr.recv()
         Logger().log_info(f"Received auth response from manager: {rsp}", LogLevel.MEDIUM_FREQ)
 
         result = CommandResult.model_validate(rsp)
@@ -255,7 +277,7 @@ class NetConnectionMgr:
         if result.result != "SUCCESS":
             raise Exception(f"Auth process failed: {result.result}")
 
-    def _conn_thread(self, host: str):
+    async def _conn_thread(self, host: str):
         attempt = 0
 
         while self._should_conn_thread_work and attempt < SettingsLoader().get_settings().connection_retries:
@@ -268,9 +290,10 @@ class NetConnectionMgr:
                 time.sleep(1)
 
             try:
-                with websockets.connect(f"{host}/perform-test") as websocket:
-                    Logger().log_info(f"Connected with host: {host}", LogLevel.MEDIUM_FREQ)
-                    attempt = self._conn_msg_life_cycle(websocket, attempt)
+                self._socket_mgr = await websockets.connect(f"{host}/perform-test")
+                Logger().log_info(f"Connected with host: {host}", LogLevel.MEDIUM_FREQ)
+                attempt = self._conn_msg_life_cycle(attempt)
+                self._socket_mgr = None
             except Exception as e:
                 Logger().log_error(f"Failed to connect with host {host}: {e}", LogLevel.MEDIUM_FREQ)
                 attempt += 1

@@ -9,12 +9,15 @@ from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .CliTranslator import CliTranslator
 from .LockFile import LockFile, LOCK_FILE_PATH
+from .WorkerComponents import StopType
 
 
 class WorkerProcess:
     # ------------------------------
     # Class fields
     # ------------------------------
+
+    _stop_type: StopType
 
     _creation_time: int
 
@@ -33,6 +36,7 @@ class WorkerProcess:
     def __init__(self):
         self._lock_file = LockFile(LOCK_FILE_PATH)
         self._creation_time = time.perf_counter_ns()
+        self._stop_type = StopType.gentle_stop
 
         if not self._lock_file.lock_file_safe():
             raise Exception(f"[ ERROR ] Failed to lock file at {LOCK_FILE_PATH}. Aborting...")
@@ -86,11 +90,17 @@ class WorkerProcess:
         self._cli_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._cli_thread.start()
 
+    def set_stop_type(self, stop_type: StopType) -> None:
+        self._stop_type = stop_type
+
     def wait_for_stop(self) -> None:
         self._stop_sem.acquire()
 
     def stop_processing(self) -> None:
-        self._stop_sem.release()
+        self._stop_sem.release()\
+
+    def get_stop_type(self) -> StopType:
+        return self._stop_type
 
     # ------------------------------
     # Private methods
