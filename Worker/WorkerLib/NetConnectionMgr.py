@@ -112,10 +112,14 @@ class NetConnectionMgr:
     def is_registered(self) -> bool:
         return self._session_token is not None and self._session_model is not None
 
-    def register(self, host: str, register_request: WorkerModel, register_response: WorkerRegistration) -> None:
-        NetConnectionMgr.validate_response(register_response.result)
+    def register(self, host: str, register_request: WorkerModel) -> None:
+        url = f"{host}/worker/register"
+        response = NetConnectionMgr.send_request(requests.post, url, register_request)
 
-        self._session_token = register_response.session_token
+        model_response = WorkerRegistration.model_validate(response.json())
+        NetConnectionMgr.validate_response(model_response.result)
+
+        self._session_token = model_response.session_token
         self._session_host = host
         self._session_model = register_request
 
@@ -127,9 +131,31 @@ class NetConnectionMgr:
         return self._session_host
 
     def unregister(self) -> None:
+        retries = 0
+
+        request = self.prepare_unregister_request()
+        host = self.get_connected_host()
+        url = f"{host}/worker/unregister"
+        response = None
+
         self._session_token = None
         self._session_host = None
         self._session_model = None
+
+        while retries < SettingsLoader().get_settings().unregister_retries:
+            try:
+                response = NetConnectionMgr.send_request(requests.delete, url, request)
+                break
+            except Exception as e:
+                Logger().log_info(
+                    f"Unregister request failed, trying again with retry num: {retries + 1}, error trace: {e}",
+                    LogLevel.MEDIUM_FREQ)
+
+            time.sleep(SettingsLoader().get_settings().retry_timestep)
+            retries += 1
+
+        if response is not None:
+            NetConnectionMgr.validate_response(CommandResult.model_validate(response.json()))
 
     def prepare_unregister_request(self) -> WorkerUnregister:
         if not self.is_registered():

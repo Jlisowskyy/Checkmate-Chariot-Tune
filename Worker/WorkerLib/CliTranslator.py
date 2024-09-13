@@ -74,10 +74,7 @@ class CliTranslator(BaseCli):
         version = ProjectInfoInstance.get_current_version()
 
         model = WorkerModel(name=name, cpus=cpus, memoryMB=memory_mb, version=version)
-        url = f"{host}/worker/register"
-        response = NetConnectionMgr.send_request(requests.post, url, model)
-
-        WorkerComponents().get_conn_mgr().register(host, model, WorkerRegistration.model_validate(response.json()))
+        WorkerComponents().get_conn_mgr().register(host, model)
 
         Logger().log_info(f"Correctly registered worker", LogLevel.LOW_FREQ)
         self._response = "Correctly registered worker"
@@ -96,31 +93,10 @@ class CliTranslator(BaseCli):
         return help_str
 
     def _unregister_command(self, index: int) -> int:
-        retries = 0
-
         if not WorkerComponents().get_conn_mgr().is_registered():
             raise Exception("Worker is not registered to any manager")
 
-        request = WorkerComponents().get_conn_mgr().prepare_unregister_request()
-        host = WorkerComponents().get_conn_mgr().get_connected_host()
-        url = f"{host}/worker/unregister"
         WorkerComponents().get_conn_mgr().unregister()
-        response = None
-
-        while retries < SettingsLoader().get_settings().unregister_retries:
-            try:
-                response = NetConnectionMgr.send_request(requests.delete, url, request)
-                break
-            except Exception as e:
-                Logger().log_info(
-                    f"Unregister request failed, trying again with retry num: {retries + 1}, error trace: {e}",
-                    LogLevel.MEDIUM_FREQ)
-
-            time.sleep(SettingsLoader().get_settings().retry_timestep)
-            retries += 1
-
-        if response is not None:
-            NetConnectionMgr.validate_response(CommandResult.model_validate(response.json()))
 
         self._response = "Correctly unregistered worker"
         return index
