@@ -40,15 +40,23 @@ class NetConnectionMgr:
         self._session_host = None
         self._session_model = None
 
+        # Prepare conn thread
         self._connection_thread = None
         self._socket_mgr = None
         self._should_conn_thread_work = False
         self._is_connected_and_authenticated = False
 
-        self._ka_thread = None
-        self._should_ka_thread_work = False
+        # Prepare KA thread
+        self._should_ka_thread_work = True
+        self._ka_thread = Thread(target=self._ka_thread_func)
+        self._ka_thread.start()
 
     def destroy(self) -> None:
+        # Abort ka thread
+        self._should_ka_thread_work = False
+        self._ka_thread.join()
+        self._ka_thread = None
+
         if WorkerComponents().get_worker_process().get_stop_type() == StopType.abort_stop or not WorkerComponents().get_conn_mgr().is_registered():
             self.abort_connection_sync()
             return
@@ -62,11 +70,6 @@ class NetConnectionMgr:
         except Exception as e:
             Logger().log_error(f"Failed to gently close connection with manager: {e}. Aborting...", LogLevel.LOW_FREQ)
             self.abort_connection_sync()
-
-        # Abort ka thread
-        self._should_ka_thread_work = False
-        self._ka_thread.join()
-        self._ka_thread = None
 
     # ------------------------------
     # Class interaction
