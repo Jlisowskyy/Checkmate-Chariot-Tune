@@ -217,7 +217,7 @@ class CliTranslator(BaseCli):
         worker_process_status = ("Worker state: Healthy\n"
                                  f"RAM assigned in MB: {WorkerComponents().get_conn_mgr().get_max_mem_str()}\n"
                                  f"RAM usage: NOT IMPLEMENTED\n"
-                                 f"CPUs assigned: {WorkerComponents().get_conn_mgr().get_max_cpus()}\n"
+                                 f"CPUs assigned: {WorkerComponents().get_conn_mgr().get_max_cpus_str()}\n"
                                  f"CPUs utilized: NOT IMPLEMENTED\n"
                                  "Worker last harden: NOT IMPLEMENTED\n"
                                  "Worker repo size: NOT IMPLEMENTED\n"

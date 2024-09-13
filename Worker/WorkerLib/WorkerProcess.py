@@ -42,12 +42,13 @@ class WorkerProcess:
         Logger().log_info("Created Worker Process instance", LogLevel.LOW_FREQ)
 
     def destroy(self):
-        self._lock_file.unlock_file()
         self._should_threads_work = False
-        self._cli_socket.close()
 
+        # Cleanup CLI connection thread
+        self._cli_socket.close()
         self._cli_thread.join()
 
+        self._lock_file.unlock_file()
         Logger().log_info("Correctly destroyed Worker Process instance", LogLevel.LOW_FREQ)
 
     # ------------------------------
@@ -113,6 +114,14 @@ class WorkerProcess:
 
         Logger().log_info("Thread stopped...", LogLevel.LOW_FREQ)
 
+    def _worker_cli_try_catch_guard(self, call: Callable) -> any:
+        try:
+            return call()
+        except Exception as e:
+            if self._should_threads_work:
+                Logger().log_error(f"Failed to process socket operation {call} because of error: {e}", LogLevel.LOW_FREQ)
+            return None
+
     def _worker_cli_thread(self) -> None:
         self._cli_socket.bind(("localhost", SettingsLoader().get_settings().process_port))
         self._cli_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -120,21 +129,15 @@ class WorkerProcess:
         self._cli_socket.settimeout(5)
 
         while self._should_threads_work:
-            try:
-                conn, addr = self._cli_socket.accept()
-            except OSError as e:
-                if e.errno != errno.EBADF or self._should_threads_work != False:
-                    Logger().log_error(f"Failed to accept incoming connection: {e}", LogLevel.LOW_FREQ)
-                continue
-            except Exception as e:
-                Logger().log_error(f"Failed to accept incoming connection: {e}", LogLevel.LOW_FREQ)
+            result = self._worker_cli_try_catch_guard(self._cli_socket.accept)
+            if result is None:
                 continue
 
+            conn, addr = result
+
             Logger().log_info(f"Received connection from: {addr}", LogLevel.MEDIUM_FREQ)
-            try:
-                data = conn.recv(1024).decode()
-            except Exception as e:
-                Logger().log_error(f"Failed to recv message. Root of the problem: {e}", LogLevel.LOW_FREQ)
+            data = self._worker_cli_try_catch_guard(conn.recv(1024).decode)
+            if data is None:
                 continue
 
             Logger().log_info(f"Received command payload: {data}", LogLevel.MEDIUM_FREQ)

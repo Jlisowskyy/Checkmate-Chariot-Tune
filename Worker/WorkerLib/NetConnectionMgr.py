@@ -36,6 +36,7 @@ class NetConnectionMgr:
         self._session_token = None
         self._session_host = None
         self._session_model = None
+
         self._connection_thread = None
         self._should_conn_thread_work = False
         self._is_connected_and_authenticated = False

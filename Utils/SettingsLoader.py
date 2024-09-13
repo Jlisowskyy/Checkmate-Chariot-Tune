@@ -62,7 +62,7 @@ class SettingsLoader(metaclass=GlobalObj):
 
     def parse_settings_log(self, path: str) -> BaseModel:
         model = self.parse_settings(path)
-        Logger().log_info("New settings loaded", LogLevel.LOW_FREQ)
+        Logger().log_info("New settings loaded", LogLevel.MEDIUM_FREQ)
         return model
 
     def save_settings(self, path) -> None:
