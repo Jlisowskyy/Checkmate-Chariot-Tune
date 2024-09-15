@@ -7,8 +7,9 @@ import requests
 import websockets
 from pydantic import BaseModel
 
+from Manager.ManagerLib.Worker import Worker
 from Models.GlobalModels import CommandResult
-from Models.WorkerModels import WorkerRegistration, WorkerUnregister, WorkerModel, WorkerAuth
+from Models.WorkerModels import WorkerRegistration, WorkerModel, WorkerAuth
 from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
@@ -201,11 +202,11 @@ class NetConnectionMgr:
         if response is not None:
             NetConnectionMgr.validate_response(CommandResult.model_validate(response.json()))
 
-    def prepare_unregister_request(self) -> WorkerUnregister:
+    def prepare_unregister_request(self) -> WorkerAuth:
         if not self.is_registered():
             raise Exception("Worker is not registered!")
 
-        return WorkerUnregister(name=self._session_model.name, session_token=self._session_token)
+        return WorkerAuth(name=self._session_model.name, session_token=self._session_token)
 
     @staticmethod
     def validate_response(result: CommandResult) -> None:

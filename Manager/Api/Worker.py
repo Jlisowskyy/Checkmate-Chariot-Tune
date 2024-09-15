@@ -27,7 +27,7 @@ async def register(worker: WorkerModel) -> WorkerRegistration:
 
 
 @router.delete("/worker/unregister", tags=["worker"])
-async def unregister(unregisterRequest: WorkerUnregister) -> CommandResult:
+async def unregister(unregisterRequest: WorkerAuth) -> CommandResult:
     Logger().log_info(f"Received worker unregister request with payload: {unregisterRequest}", LogLevel.MEDIUM_FREQ)
 
     try:

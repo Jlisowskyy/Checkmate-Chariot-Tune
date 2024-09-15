@@ -1,6 +1,10 @@
 MANAGER IMPLEMENT:
-implement auth -> implement KA -> implement Test Task class in mgr and derive what is needed -> implement Init to Worker
--> GOTO JOBS IMPLEMENT
+fix worker in Manager (add locks and simplify) ->
+implement auth ->
+implement KA ->
+implement Test Task class in mgr and derive what is needed ->
+implement Init to Worker ->
+GOTO JOBS IMPLEMENT
 
 JOBS IMPLEMENT:
 
