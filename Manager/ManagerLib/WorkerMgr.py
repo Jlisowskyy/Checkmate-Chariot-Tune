@@ -43,8 +43,6 @@ class WorkerMgr(metaclass=GlobalObj):
 
         self._workers_lock = Lock()
         self._workers_queue_lock = Lock()
-        self._workers_move_lock = Lock()
-        self._workers_audit_lock = Lock()
         self._workers_queue = list[Worker]()
 
         self._workersAuditor = Thread(target=self._worker_audit_thread)
@@ -89,7 +87,7 @@ class WorkerMgr(metaclass=GlobalObj):
             with self._workers_lock:
                 if unregister_request.name in self._workers.keys() and \
                         self._workers[unregister_request.name].is_same(unregister_request.name):
-                    return WorkerMgr.unregister_unlocked(queue_worker, unregister_request)
+                    return WorkerMgr.unregister_unlocked(self._workers[unregister_request.name], unregister_request)
 
         Logger().log_info(f"Worker with name: {unregister_request.name} not able to be unregister"
                           f" because was not found", LogLevel.LOW_FREQ)
@@ -108,12 +106,31 @@ class WorkerMgr(metaclass=GlobalObj):
         raise NotImplementedError()
 
     def bump_ka(self, worker_auth: WorkerAuth) -> ErrorTable:
-        # TODO: ADD LOGIC
-        raise NotImplementedError()
+        with self._workers_queue_lock:
+            for queue_worker in self._workers_queue:
+                if queue_worker.is_same(worker_auth.name):
+                    return self._bump_ka_internal(worker_auth, queue_worker)
+
+            with self._workers_lock:
+                if worker_auth.name in self._workers.keys() and \
+                        not self._workers[worker_auth.name].is_marked_for_deletion():
+                    return self._bump_ka_internal(worker_auth, self._workers[worker_auth.name])
+
+        Logger().log_info(f"KA for {worker_auth.name} not bumped due to: Worker not found", LogLevel.LOW_FREQ)
+        return ErrorTable.WORKER_NOT_FOUND
 
     # ------------------------------
     # Private methods
     # ------------------------------
+
+    @staticmethod
+    def _bump_ka_internal(worker: Worker, worker_auth: WorkerAuth) -> ErrorTable:
+        if worker.get_session_token() != worker_auth.session_token:
+            Logger().log_info(f"KA for {worker_auth.name} not bumped due to: Invalid token", LogLevel.LOW_FREQ)
+            return ErrorTable.INVALID_TOKEN
+
+        worker.bump_activity()
+        Logger().log_info(f"KA for {worker_auth.name} correctly bumped", LogLevel.LOW_FREQ)
 
     def _register_worker_unlocked(self, worker_model: WorkerModel) -> int:
         worker = Worker(worker_model)
@@ -163,6 +180,7 @@ class WorkerMgr(metaclass=GlobalObj):
     def _worker_audit_thread(self) -> None:
         while self._shouldWork:
             time.sleep(0.5)
+            Logger().log_info("Audit thread woke up", LogLevel.HIGH_FREQ)
 
             self._move_workers()
             self._audit_workers()
