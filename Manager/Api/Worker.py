@@ -59,5 +59,14 @@ async def bump_ka(worker: WorkerAuth) -> CommandResult:
 
 @router.websocket("/worker/perform-test")
 async def websocket_endpoint(websocket: WebSocket):
-    with await websocket.accept() as websocket:
+    await websocket.accept()
+    addr = websocket.client
+    Logger().log_info(f"Received active connection from: {addr}", LogLevel.MEDIUM_FREQ)
+
+    try:
         ManagerComponents().get_worker_mgr().worker_loop(websocket)
+    except Exception as e:
+        Logger().log_error(f"Error occurred during active connection: {e}", LogLevel.LOW_FREQ)
+
+    await websocket.close()
+    Logger().log_info(f"Active connection to {addr} closed", LogLevel.MEDIUM_FREQ)

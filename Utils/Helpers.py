@@ -17,5 +17,8 @@ def get_pretty_time_spent_string_from_seconds(time_spent: float) -> str:
     return ', '.join(pretty_str)
 
 
-def convert_ns_to_s(ns: float) -> float:
-    return ns / (1000 * 1000 * 1000)
+def convert_ns_to_s(ns: int) -> float:
+    return float(ns / (1000 * 1000 * 1000))
+
+def convert_s_to_ns(s: float) -> int:
+    return int(s * 1000 * 1000 * 1000)

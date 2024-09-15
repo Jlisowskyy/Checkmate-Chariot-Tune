@@ -1,9 +1,14 @@
 import time
-from threading import Thread, Lock
+from asyncio import FastChildWatcher
+from idlelib.grep import walk_error
+from threading import Thread, Lock, Condition
 
 from fastapi import WebSocket
+from pydantic import BaseModel
 
+from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerAuth
+from Utils.Helpers import convert_ns_to_s, convert_s_to_ns
 from . import Worker
 from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel
@@ -27,11 +32,8 @@ class WorkerMgr(metaclass=GlobalObj):
 
     _workers_lock: Lock
     _workers_queue_lock: Lock
-    _workers_move_lock: Lock
-    _workers_audit_lock: Lock
     _workers_queue: list[Worker]
-
-    _worker_timeout: int
+    _move_cv: Condition
 
     # ------------------------------
     # Class creation
@@ -43,6 +45,7 @@ class WorkerMgr(metaclass=GlobalObj):
 
         self._workers_lock = Lock()
         self._workers_queue_lock = Lock()
+        self._move_cv = Condition()
         self._workers_queue = list[Worker]()
 
         self._workersAuditor = Thread(target=self._worker_audit_thread)
@@ -101,9 +104,12 @@ class WorkerMgr(metaclass=GlobalObj):
             return ErrorTable.SUCCESS
         return ErrorTable.INVALID_TOKEN
 
-    def worker_loop(self, socket: WebSocket):
-        # TODO: ADD LOGIC
-        raise NotImplementedError()
+    async def worker_loop(self, socket: WebSocket) -> None:
+        worker = await self._worker_loop_auth(socket)
+        await WorkerMgr._worker_loop_conf_routine(worker, socket)
+
+        while not worker.is_marked_for_deletion():
+            pass
 
     def bump_ka(self, worker_auth: WorkerAuth) -> ErrorTable:
         with self._workers_queue_lock:
@@ -122,6 +128,71 @@ class WorkerMgr(metaclass=GlobalObj):
     # ------------------------------
     # Private methods
     # ------------------------------
+
+    @staticmethod
+    async def _worker_loop_send_msg(worker: Worker, websocket: WebSocket, msg: BaseModel) -> None:
+        msg_str = msg.model_dump_json()
+
+        Logger().log_info(f"Sending msg: {msg_str} to worker: {worker.name}", LogLevel.HIGH_FREQ)
+
+        try:
+            await websocket.send_json(msg_str)
+        except Exception as e:
+            if worker.is_marked_for_deletion():
+                raise Exception("Worker is marked for deletion. Aborting worker loop...")
+            else:
+                raise e
+
+        Logger().log_info(f"Msg: {msg_str} sent to worker with name: {worker.name}", LogLevel.HIGH_FREQ)
+
+    @staticmethod
+    async def _worker_loop_rcv_msg(worker: Worker, websocket: WebSocket) -> str:
+        Logger().log_info(f"Receiving msg for worker: {worker.name}", LogLevel.HIGH_FREQ)
+
+        try:
+            msg = await websocket.receive_json()
+        except Exception as e:
+            if worker.is_marked_for_deletion():
+                raise Exception("Worker is being deleted. Aborting...")
+            else:
+                raise e
+
+        Logger().log_info(f"Received msg: {msg} for worker: {worker.name}", LogLevel.HIGH_FREQ)
+
+        return msg
+
+    @staticmethod
+    async def _worker_loop_conf_routine(worker: Worker, websocket: WebSocket) -> None:
+        pass
+
+    async def _worker_loop_auth(self, websocket: WebSocket) -> Worker:
+        self._wait_for_registration_move()
+
+        auth = await websocket.receive_json()
+        worker_auth = WorkerAuth.model_validate_json(auth)
+
+        with self._workers_lock:
+            if worker_auth.name not in self._workers.keys():
+                await websocket.send_json(CommandResult(result=ErrorTable.WORKER_NOT_FOUND.name).model_dump_json())
+                raise Exception("Worker not found")
+
+            worker = self._workers[worker_auth.name]
+
+            if worker.get_session_token() != worker_auth.session_token:
+                await websocket.send_json(CommandResult(result=ErrorTable.INVALID_TOKEN.name).model_dump_json())
+                raise Exception("Session token not match")
+
+        Logger().log_info(f"Correctly authenticated worker: {worker.name}", LogLevel.MEDIUM_FREQ)
+
+        status = worker.set_conn_socket(websocket)
+        await websocket.send_json(CommandResult(result=status.name).model_dump_json())
+
+        if status != ErrorTable.SUCCESS:
+            raise Exception(f"Failed to bond worker: {worker.name} with socket: {status.name}")
+
+        Logger().log_info(f"Worker: {worker.name} correctly bonded with loop socket", LogLevel.MEDIUM_FREQ)
+
+        return worker
 
     @staticmethod
     def _bump_ka_internal(worker: Worker, worker_auth: WorkerAuth) -> ErrorTable:
@@ -152,6 +223,7 @@ class WorkerMgr(metaclass=GlobalObj):
 
             if inactivity > SettingsLoader().get_settings().worker_timeout:
                 Logger().log_info(f"Worker: {name} timeout, inactivity: {inactivity}s", LogLevel.MEDIUM_FREQ)
+                worker.mark_for_deletion()
                 to_kick_workers_list.append(name)
             elif worker.is_marked_for_deletion():
                 Logger().log_info(f"Worker: {name} marked for deletion is being removed", LogLevel.MEDIUM_FREQ)
@@ -175,12 +247,31 @@ class WorkerMgr(metaclass=GlobalObj):
                 with self._workers_lock:
                     self._workers[worker.model.name] = worker
                 Logger().log_info(f"Worker: {worker.model.name} moved from queue to db", LogLevel.HIGH_FREQ)
+
+        with self._move_cv:
+            self._move_cv.notify_all()
+
         Logger().log_info("Registrations hardening finished", LogLevel.HIGH_FREQ)
 
     def _worker_audit_thread(self) -> None:
+        BASE_SLEEP_TIME_NS = convert_s_to_ns(0.1)
+        execution_time = 0
+
         while self._shouldWork:
-            time.sleep(0.5)
+            sleep_time = convert_ns_to_s(max(0, BASE_SLEEP_TIME_NS - execution_time))
+            execution_time = max(0, execution_time - BASE_SLEEP_TIME_NS)
+
+            time.sleep(sleep_time)
+
             Logger().log_info("Audit thread woke up", LogLevel.HIGH_FREQ)
 
+            time_before = time.perf_counter_ns()
             self._move_workers()
             self._audit_workers()
+            time_after = time.perf_counter_ns()
+
+            execution_time += time_after - time_before
+
+    def _wait_for_registration_move(self) -> None:
+        with self._move_cv:
+            self._move_cv.wait()
