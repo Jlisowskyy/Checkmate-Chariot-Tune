@@ -1,5 +1,4 @@
 MANAGER IMPLEMENT:
-implement auth ->
 implement Test Task class in mgr and derive what is needed ->
 implement Init to Worker ->
 GOTO JOBS IMPLEMENT

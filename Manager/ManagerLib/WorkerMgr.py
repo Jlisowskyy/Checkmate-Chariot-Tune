@@ -1,6 +1,4 @@
 import time
-from asyncio import FastChildWatcher
-from idlelib.grep import walk_error
 from threading import Thread, Lock, Condition
 
 from fastapi import WebSocket
@@ -13,14 +11,13 @@ from . import Worker
 from .ErrorTable import ErrorTable
 from ...Models.WorkerModels import WorkerModel
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
-from ...Utils.GlobalObj import GlobalObj
 from ...Utils.Logger import Logger, LogLevel
 from ...Utils.SettingsLoader import SettingsLoader
 
 MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_bu1ild_config("MIN_WORKER_VERSION"))
 
 
-class WorkerMgr(metaclass=GlobalObj):
+class WorkerMgr:
     # ------------------------------
     # Class fields
     # ------------------------------
