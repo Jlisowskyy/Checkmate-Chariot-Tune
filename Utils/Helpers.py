@@ -1,3 +1,8 @@
+import subprocess
+
+from .Logger import Logger, LogLevel
+
+
 def get_pretty_time_spent_string_from_seconds(time_spent: float) -> str:
     days = int(time_spent // (24 * 3600))
     hours = int((time_spent % (24 * 3600)) // 3600)
@@ -20,5 +25,15 @@ def get_pretty_time_spent_string_from_seconds(time_spent: float) -> str:
 def convert_ns_to_s(ns: int) -> float:
     return float(ns / (1000 * 1000 * 1000))
 
+
 def convert_s_to_ns(s: float) -> int:
     return int(s * 1000 * 1000 * 1000)
+
+
+def run_shell_command(command: str, cwd: str | None = None):
+    Logger().log_info(f"Running shell command: {command}...", LogLevel.LOW_FREQ)
+
+    try:
+        subprocess.run(command, shell=True, check=True, cwd=cwd)
+    except Exception as e:
+        Logger().log_error(f"Failed to execute shell command: {command} by error: {e}", LogLevel.LOW_FREQ)
