@@ -1,4 +1,6 @@
+import os
 import subprocess
+from datetime import datetime
 
 from .Logger import Logger, LogLevel
 
@@ -37,3 +39,9 @@ def run_shell_command(command: str, cwd: str | None = None):
         subprocess.run(command, shell=True, check=True, cwd=cwd)
     except Exception as e:
         Logger().log_error(f"Failed to execute shell command: {command} by error: {e}", LogLevel.LOW_FREQ)
+
+def dump_content_to_file_on_crash(content: str) -> None:
+    file_name = f"{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{os.getpid()}.dump"
+
+    with open(file_name, "w") as file:
+        file.write(content)

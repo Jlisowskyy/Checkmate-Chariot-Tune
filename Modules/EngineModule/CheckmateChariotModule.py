@@ -52,7 +52,7 @@ class CheckmateChariotModule(BaseEngineModule):
 
         return rv
 
-    async def _get_param_command(self, param_name: str, param_value: str) -> str:
+    async def get_param_command(self, param_name: str, param_value: str) -> str:
         return f"tune {param_name} {param_value}"
 
 
