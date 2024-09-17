@@ -1,6 +1,7 @@
 import json
 
 from abc import abstractmethod, ABC
+from typing import Callable
 
 from Utils.Logger import Logger, LogLevel
 from ..BuildableModule import BuildableModule
@@ -142,3 +143,12 @@ class BaseChessTournamentModule(BuildableModule, ABC):
         self._resign_minimal_moves_above_range = self._parse_and_validate(config, int,
                                                                           "resign_minimal_moves_above_range", 10, 1,
                                                                           INFINITY)
+
+
+TournamentFactoryMethods: dict[str, Callable[[str, dict[str, str]], BaseChessTournamentModule]] = {}
+
+
+def append_tournament_factory_method(tournament: str,
+                                     factory: Callable[[str, dict[str, str]], BaseChessTournamentModule]) -> None:
+    if tournament not in TournamentFactoryMethods:
+        TournamentFactoryMethods[tournament] = factory

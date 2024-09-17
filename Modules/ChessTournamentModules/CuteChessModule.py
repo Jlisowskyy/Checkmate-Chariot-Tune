@@ -1,11 +1,10 @@
 import os.path
 import json
-import random
 from subprocess import Popen, PIPE
 
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
 from Utils.Logger import Logger, LogLevel
-from .BaseChessTournamentModule import BaseChessTournamentModule
+from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_factory_method
 from ..EngineModule.BaseEngineModule import EngineFactoryMethods, BaseEngineModule
 
 
@@ -98,7 +97,7 @@ class CuteChessModule(BaseChessTournamentModule):
 
         factory = EngineFactoryMethods[engine_name]
         engine = factory(self._build_dir, startup_config)
-        await engine.build_engine()
+        await engine.build_module()
         engine_config = await engine.get_config()
 
         filtered_config: dict[str, str] = {
@@ -172,3 +171,8 @@ class CuteChessModule(BaseChessTournamentModule):
 
         dump_content_to_file_on_crash(output)
         raise Exception(f"Failed to find finished game line in output from game played with command: {command}")
+
+def build_from_json(build_path: str, _: dict[str, str]) -> CuteChessModule:
+    return CuteChessModule(build_path)
+
+append_tournament_factory_method(CuteChessModule.TOURNAMENT_NAME, build_from_json)

@@ -25,7 +25,7 @@ class BuildableModule(ABC):
     # Base methods
     # ------------------------------
 
-    async def build_engine(self) -> None:
+    async def build_module(self) -> None:
         Logger().log_info(f"Building module with name: {self._obj_name}...", LogLevel.LOW_FREQ)
         try:
             await self._build_internal()

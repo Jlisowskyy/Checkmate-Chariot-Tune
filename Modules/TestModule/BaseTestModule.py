@@ -1,7 +1,8 @@
 from abc import abstractmethod, ABC
+from typing import Callable
 
 
-class BaseModule(ABC):
+class BaseTestModule(ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -44,3 +45,9 @@ class BaseModule(ABC):
     @abstractmethod
     async def sync_test_results(self, response: str) -> None:
         pass
+
+TestModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseTestModule]] = {}
+
+def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseTestModule]) -> None:
+    if module not in TestModuleFactoryMethods:
+        TestModuleFactoryMethods[module] = factory

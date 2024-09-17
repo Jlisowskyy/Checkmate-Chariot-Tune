@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 
-from .BaseModule import BaseModule
-from .ChessTournamentModules.BaseChessTournamentModule import BaseChessTournamentModule
+from .BaseTestModule import BaseTestModule, append_test_module_factory_method
+from Modules.ChessTournamentModules import *
+from Modules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
 
-class BaseChessModule(BaseModule, ABC):
+
+class BaseChessTestModule(BaseTestModule, ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -54,3 +56,18 @@ class BaseChessModule(BaseModule, ABC):
     @abstractmethod
     async def build_engine(self, build_path: str) -> None:
         pass
+
+
+def build_from_json(arg: dict[str, str]) -> BaseChessTestModule:
+    if "chess_tournament_module" not in arg:
+        raise Exception("Missing chess_tournament_module in json")
+
+    if "build_dir" not in arg:
+        raise Exception("Missing build_dir in json")
+
+    chess_tournament_module_name = arg["chess_tournament_module"]
+    build_dir = arg["build_dir"]
+    chess_tournament_module = TournamentFactoryMethods[chess_tournament_module_name](build_dir, arg)
+    return BaseChessTestModule(chess_tournament_module)
+
+append_test_module_factory_method("BaseChessModule", build_from_json)
