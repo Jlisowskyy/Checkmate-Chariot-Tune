@@ -7,7 +7,6 @@ import requests
 import websockets
 from pydantic import BaseModel
 
-from Manager.ManagerLib.Worker import Worker
 from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerRegistration, WorkerModel, WorkerAuth
 from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s

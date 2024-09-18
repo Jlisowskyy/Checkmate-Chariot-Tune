@@ -36,7 +36,8 @@ class BuildableModule(ABC):
             if os.path.isfile(self._expected_exec_path) and os.access(self._expected_exec_path, os.X_OK):
                 self._is_built_correctly = True
             else:
-                raise Exception(f"Failed to build module: {self._obj_name} with error: file not found or not executable")
+                raise Exception(
+                    f"Failed to build module: {self._obj_name} with error: file not found or not executable")
 
             self._is_built_correctly = True
         except Exception as e:

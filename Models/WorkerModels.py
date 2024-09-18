@@ -18,4 +18,3 @@ class WorkerRegistration(BaseModel):
 class WorkerAuth(BaseModel):
     name: str
     session_token: str
-

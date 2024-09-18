@@ -1,11 +1,12 @@
-from Utils.GlobalObj import GlobalObj
-
 from typing import TYPE_CHECKING, Union
+
+from Utils.GlobalObj import GlobalObj
 
 if TYPE_CHECKING:
     from .TestJobMgr import TestJobMgr
     from .TestTaskMgr import TestTaskMgr
     from .WorkerMgr import WorkerMgr
+
 
 class ManagerComponents(metaclass=GlobalObj):
     # ------------------------------

@@ -1,7 +1,7 @@
 import os
 
-from .ManagerSettings import ManagerSettings, update_logger_freq
 from .ManagerComponents import ManagerComponents
+from .ManagerSettings import ManagerSettings, update_logger_freq
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Utils.Logger import Logger, LogLevel
 from ...Utils.SettingsLoader import SettingsLoader

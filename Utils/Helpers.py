@@ -40,6 +40,7 @@ def run_shell_command(command: str, cwd: str | None = None):
     except Exception as e:
         Logger().log_error(f"Failed to execute shell command: {command} by error: {e}", LogLevel.LOW_FREQ)
 
+
 def dump_content_to_file_on_crash(content: str) -> None:
     file_name = f"{datetime.now().strftime("%Y-%m-%d_%H:%M:%S")}_{os.getpid()}.dump"
 

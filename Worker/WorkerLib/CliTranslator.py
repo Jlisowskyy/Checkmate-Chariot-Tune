@@ -1,14 +1,8 @@
-import time
-
-import requests
-
-from Models.GlobalModels import CommandResult
-from Models.WorkerModels import WorkerModel, WorkerRegistration
+from Models.WorkerModels import WorkerModel
 from ProjectInfo.ProjectInfo import ProjectInfoInstance
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .BaseCli import BaseCli, CommandCli, CommandType
-from .NetConnectionMgr import NetConnectionMgr
 from .WorkerComponents import WorkerComponents, BlockType
 
 

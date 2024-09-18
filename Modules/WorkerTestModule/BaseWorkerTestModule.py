@@ -30,7 +30,9 @@ class BaseWorkerTestModule(ABC):
     async def run_single_test(self, arg_str: str, seed: int) -> str:
         pass
 
+
 WorkerTestModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseWorkerTestModule]] = {}
+
 
 def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseWorkerTestModule]) -> None:
     if module not in WorkerTestModuleFactoryMethods:

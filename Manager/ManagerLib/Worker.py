@@ -1,10 +1,11 @@
 import secrets
 import time
 
+from fastapi import WebSocket
+
 from Manager.ManagerLib.ErrorTable import ErrorTable
 from Models.WorkerModels import WorkerModel, WorkerAuth
 from Utils.RWLock import RWLock
-from fastapi import WebSocket
 
 
 class Worker:

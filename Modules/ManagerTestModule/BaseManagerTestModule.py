@@ -30,7 +30,9 @@ class BaseManagerTestModule(ABC):
     async def sync_test_results(self, response: str) -> None:
         pass
 
+
 ManagerTestModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseManagerTestModule]] = {}
+
 
 def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseManagerTestModule]) -> None:
     if module not in ManagerTestModuleFactoryMethods:

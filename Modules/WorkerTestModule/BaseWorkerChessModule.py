@@ -1,7 +1,6 @@
 import json
 
 from Modules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
-from Modules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule, TrainingMethodModuleFactoryMethods
 from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_factory_method
 
 

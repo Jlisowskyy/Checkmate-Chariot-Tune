@@ -4,12 +4,12 @@ import time
 from threading import Thread, Semaphore
 from typing import Callable
 
+from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
 from .CliTranslator import CliTranslator
 from .LockFile import LockFile, LOCK_FILE_PATH
 from .WorkerComponents import StopType
-from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 
 
 class WorkerProcess:
@@ -82,8 +82,8 @@ class WorkerProcess:
         self._stop_sem.acquire()
 
     def stop_processing(self) -> None:
-        self._stop_sem.release()\
-
+        self._stop_sem.release() \
+ \
     def get_stop_type(self) -> StopType:
         return self._stop_type
 
@@ -114,7 +114,8 @@ class WorkerProcess:
             return call()
         except Exception as e:
             if self._should_threads_work:
-                Logger().log_error(f"Failed to process socket operation {call} because of error: {e}", LogLevel.LOW_FREQ)
+                Logger().log_error(f"Failed to process socket operation {call} because of error: {e}",
+                                   LogLevel.LOW_FREQ)
             return None
 
     def _worker_cli_thread(self) -> None:

@@ -18,7 +18,6 @@ class BaseTrainingMethodModule(ABC):
     # Basic Methods
     # ------------------------------
 
-
     # ------------------------------
     # Abstract Methods
     # ------------------------------
@@ -43,8 +42,11 @@ class BaseTrainingMethodModule(ABC):
     async def harden_model(self) -> None:
         pass
 
+
 TrainingMethodModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseTrainingMethodModule]] = {}
 
-def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseTrainingMethodModule]) -> None:
+
+def append_test_module_factory_method(module: str,
+                                      factory: Callable[[dict[str, str]], BaseTrainingMethodModule]) -> None:
     if module not in TrainingMethodModuleFactoryMethods:
         TrainingMethodModuleFactoryMethods[module] = factory

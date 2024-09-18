@@ -1,7 +1,7 @@
 import os
 
-from .BaseEngineModule import BaseEngineModule, append_engine_factory_method
 from Utils.Helpers import run_shell_command
+from .BaseEngineModule import BaseEngineModule, append_engine_factory_method
 
 
 class CheckmateChariotModule(BaseEngineModule):

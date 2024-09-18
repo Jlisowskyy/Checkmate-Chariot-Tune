@@ -1,5 +1,4 @@
 import json
-
 from abc import abstractmethod, ABC
 from typing import Callable
 

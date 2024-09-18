@@ -1,5 +1,5 @@
-import os.path
 import json
+import os.path
 from subprocess import Popen, PIPE
 
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
@@ -171,7 +171,9 @@ class CuteChessModule(BaseChessTournamentModule):
         dump_content_to_file_on_crash(output)
         raise Exception(f"Failed to find finished game line in output from game played with command: {command}")
 
+
 def build_from_json(build_path: str, _: dict[str, str]) -> CuteChessModule:
     return CuteChessModule(build_path)
+
 
 append_tournament_factory_method(CuteChessModule.TOURNAMENT_NAME, build_from_json)
