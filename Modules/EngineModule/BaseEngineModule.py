@@ -12,8 +12,8 @@ class BaseEngineModule(BuildableModule, ABC):
     # Class creation
     # ------------------------------
 
-    def __init__(self, exec_path: str, engine_name: str) -> None:
-        super().__init__(exec_path, engine_name)
+    def __init__(self, exec_path: str, build_dir: str, engine_name: str) -> None:
+        super().__init__(exec_path, build_dir, engine_name)
 
     # ------------------------------
     # Base methods

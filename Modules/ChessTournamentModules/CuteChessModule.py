@@ -18,7 +18,6 @@ class CuteChessModule(BaseChessTournamentModule):
     EXEC_NAME: str = "cutechess-cli"
     CONFIG_FILE: str = "engines.json"
 
-    _build_dir: str
     _config_file_path: str
 
     _tested_engine: str
@@ -30,10 +29,10 @@ class CuteChessModule(BaseChessTournamentModule):
     # ------------------------------
 
     def __init__(self, build_dir: str) -> None:
-        self._build_dir = str(os.path.join(build_dir, CuteChessModule.SUBDIR_NAME))
-        exec_path = os.path.join(self._build_dir, CuteChessModule.EXEC_NAME)
+        build_dir = str(os.path.join(build_dir, CuteChessModule.SUBDIR_NAME))
+        exec_path = os.path.join(build_dir, CuteChessModule.EXEC_NAME)
 
-        super().__init__(exec_path, CuteChessModule.TOURNAMENT_NAME)
+        super().__init__(exec_path, build_dir, CuteChessModule.TOURNAMENT_NAME)
 
         self._config_file_path = str(os.path.join(self._build_dir, CuteChessModule.CONFIG_FILE))
         self._tested_engine = ""

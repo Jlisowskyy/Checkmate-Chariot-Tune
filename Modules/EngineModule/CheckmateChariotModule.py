@@ -21,11 +21,11 @@ class CheckmateChariotModule(BaseEngineModule):
 
     def __init__(self, build_path: str, commit: str) -> None:
         self._build_commit = commit
-        self._build_dir = str(os.path.join(build_path, CheckmateChariotModule.SUBDIR_NAME))
+        build_dir = str(os.path.join(build_path, CheckmateChariotModule.SUBDIR_NAME))
         exec_path = str(
             os.path.join(build_path, CheckmateChariotModule.SUBDIR_NAME, CheckmateChariotModule.ENGINE_NAME))
 
-        super().__init__(exec_path, CheckmateChariotModule.ENGINE_NAME)
+        super().__init__(exec_path, build_dir, CheckmateChariotModule.ENGINE_NAME)
 
     # ------------------------------
     # Abstract methods implementation

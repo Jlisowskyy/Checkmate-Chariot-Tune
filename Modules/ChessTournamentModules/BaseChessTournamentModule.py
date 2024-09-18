@@ -25,8 +25,8 @@ class BaseChessTournamentModule(BuildableModule, ABC):
     # Class creation
     # ------------------------------
 
-    def __init__(self, exec_path: str, tournament_name: str) -> None:
-        super().__init__(exec_path, tournament_name)
+    def __init__(self, exec_path: str, build_dir: str, obj_name: str) -> None:
+        super().__init__(exec_path, build_dir, obj_name)
 
     # ------------------------------
     # Basic Methods
