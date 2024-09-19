@@ -76,3 +76,28 @@ class RWLock:
             Logger().log_error(f"RW lock caught error: {e}", LogLevel.HIGH_FREQ)
         finally:
             self.get_write()
+
+
+class LockableObject:
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
+    _lock: RWLock
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
+
+    def __init__(self) -> None:
+        self._lock = RWLock()
+
+    def destroy(self) -> None:
+        self._lock.destroy()
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
+
+    def get_lock(self) -> RWLock:
+        return self._lock
