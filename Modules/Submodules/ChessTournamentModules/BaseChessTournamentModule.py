@@ -2,8 +2,9 @@ import json
 from abc import abstractmethod, ABC
 from typing import Callable
 
-from Utils.Logger import Logger, LogLevel
 from Modules.BuildableModule import BuildableModule
+from Utils.Logger import Logger, LogLevel
+from ..SubModulesRegistry import append_submodule_factory_methods
 
 
 class BaseChessTournamentModule(BuildableModule, ABC):
@@ -144,10 +145,10 @@ class BaseChessTournamentModule(BuildableModule, ABC):
                                                                           INFINITY)
 
 
-TournamentFactoryMethods: dict[str, Callable[[str, dict[str, str]], BaseChessTournamentModule]] = {}
-
+TournamentFactoryMethods: dict[str, Callable[[dict[str, str]], BaseChessTournamentModule]] = {}
+append_submodule_factory_methods("ChessTournament", TournamentFactoryMethods)
 
 def append_tournament_factory_method(tournament: str,
-                                     factory: Callable[[str, dict[str, str]], BaseChessTournamentModule]) -> None:
+                                     factory: Callable[[dict[str, str]], BaseChessTournamentModule]) -> None:
     if tournament not in TournamentFactoryMethods:
         TournamentFactoryMethods[tournament] = factory

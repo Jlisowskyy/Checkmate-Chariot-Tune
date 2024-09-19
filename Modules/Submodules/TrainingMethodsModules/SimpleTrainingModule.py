@@ -1,4 +1,4 @@
-from .BaseTrainingMethodModule import BaseTrainingMethodModule
+from .BaseTrainingMethodModule import BaseTrainingMethodModule, append_test_module_factory_method
 
 class SimpleTrainingModule(BaseTrainingMethodModule):
     # ------------------------------
@@ -34,3 +34,10 @@ class SimpleTrainingModule(BaseTrainingMethodModule):
 
     async def harden_model(self) -> None:
         pass
+
+
+def build_from_json(_: dict[str, str]) -> BaseTrainingMethodModule:
+    return SimpleTrainingModule()
+
+
+append_test_module_factory_method("SimpleTrainingModule", build_from_json)

@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Callable
 
+from ..SubModulesRegistry import append_submodule_factory_methods
+
 
 class BaseTrainingMethodModule(ABC):
     # ------------------------------
@@ -44,7 +46,7 @@ class BaseTrainingMethodModule(ABC):
 
 
 TrainingMethodModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseTrainingMethodModule]] = {}
-
+append_submodule_factory_methods("TrainingMethod", TrainingMethodModuleFactoryMethods)
 
 def append_test_module_factory_method(module: str,
                                       factory: Callable[[dict[str, str]], BaseTrainingMethodModule]) -> None:

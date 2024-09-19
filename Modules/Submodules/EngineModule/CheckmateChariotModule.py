@@ -56,9 +56,14 @@ class CheckmateChariotModule(BaseEngineModule):
         return f"tune {param_name} {param_value}"
 
 
-def build_from_json(build_path: str, json: dict[str, str]) -> CheckmateChariotModule:
-    commit = json["commit"] if "commit" in json else ""
-    return CheckmateChariotModule(build_path, commit)
+def build_from_json(json: dict[str, str]) -> CheckmateChariotModule:
+    if "build_dir" not in json or not isinstance(json["build_dir"], str):
+        raise ValueError("Invalid JSON: missing 'build_dir' field")
+
+    build_dir = json["build_dir"]
+    commit = json["commit"] if "commit" in json and isinstance(json["commit"], str) else ""
+
+    return CheckmateChariotModule(build_dir, commit)
 
 
 append_engine_factory_method(CheckmateChariotModule.ENGINE_NAME, build_from_json)

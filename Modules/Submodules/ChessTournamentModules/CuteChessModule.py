@@ -94,8 +94,11 @@ class CuteChessModule(BaseChessTournamentModule):
         if engine_name in self._engines:
             return
 
+        if "build_dir" not in startup_config:
+            startup_config["build_dir"] = self._build_dir
+
         factory = EngineFactoryMethods[engine_name]
-        engine = factory(self._build_dir, startup_config)
+        engine = factory(startup_config)
         await engine.build_module()
         engine_config = await engine.get_config()
 
@@ -172,8 +175,16 @@ class CuteChessModule(BaseChessTournamentModule):
         raise Exception(f"Failed to find finished game line in output from game played with command: {command}")
 
 
-def build_from_json(build_path: str, _: dict[str, str]) -> CuteChessModule:
-    return CuteChessModule(build_path)
+def build_from_json(json_dict: dict[str, str]) -> CuteChessModule:
+    if "build_dir" not in json_dict:
+        raise Exception("Missing build_dir in json!")
+
+    if not isinstance(json_dict["build_dir"], str):
+        raise Exception("build_dir should be a string!")
+
+    build_dir = json_dict["build_dir"]
+
+    return CuteChessModule(build_dir)
 
 
 append_tournament_factory_method(CuteChessModule.TOURNAMENT_NAME, build_from_json)

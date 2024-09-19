@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 
 from Modules.BuildableModule import BuildableModule
+from ..SubModulesRegistry import append_submodule_factory_methods
 
 
 class BaseEngineModule(BuildableModule, ABC):
@@ -33,9 +34,10 @@ class BaseEngineModule(BuildableModule, ABC):
         pass
 
 
-EngineFactoryMethods: dict[str, Callable[[str, dict[str, str]], 'BaseEngineModule']] = {}
+EngineFactoryMethods: dict[str, Callable[[dict[str, str]], 'BaseEngineModule']] = {}
+append_submodule_factory_methods("Engine", EngineFactoryMethods)
 
 
-def append_engine_factory_method(engine: str, factory: Callable[[str, dict[str, str]], 'BaseEngineModule']) -> None:
+def append_engine_factory_method(engine: str, factory: Callable[[dict[str, str]], 'BaseEngineModule']) -> None:
     if engine not in EngineFactoryMethods:
         EngineFactoryMethods[engine] = factory
