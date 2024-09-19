@@ -1,6 +1,6 @@
 import json
 
-from Modules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
+from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
 from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_factory_method
 
 
@@ -56,20 +56,6 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
             raise Exception("Params must be a dictionary with string or int values")
 
         result = await self._chess_tournament_module.play_game(params, opponent, seed)
-        return result
-
-    # ------------------------------
-    # Manager methods
-    # ------------------------------
-
-    async def prepare_test_args(self) -> str:
-        pass
-
-    async def sync_test_results(self, response: str) -> None:
-        pass
-
-    async def prepare_config_args(self) -> str:
-        pass
 
     # ------------------------------
     # Helper methods

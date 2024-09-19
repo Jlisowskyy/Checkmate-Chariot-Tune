@@ -2,6 +2,27 @@ from Utils.Logger import Logger, LogLevel
 from ...Utils.GlobalObj import GlobalObj
 
 
+class TestTask:
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
+
+    def __init__(self) -> None:
+        pass
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
+
+    # ------------------------------
+    # Private methods
+    # ------------------------------
+
+
 class TestTaskMgr(metaclass=GlobalObj):
     # ------------------------------
     # Class fields

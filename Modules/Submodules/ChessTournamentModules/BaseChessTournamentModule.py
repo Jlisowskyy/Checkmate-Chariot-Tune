@@ -3,7 +3,7 @@ from abc import abstractmethod, ABC
 from typing import Callable
 
 from Utils.Logger import Logger, LogLevel
-from ..BuildableModule import BuildableModule
+from Modules.BuildableModule import BuildableModule
 
 
 class BaseChessTournamentModule(BuildableModule, ABC):

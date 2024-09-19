@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
-from ..BuildableModule import BuildableModule
+from Modules.BuildableModule import BuildableModule
 
 
 class BaseEngineModule(BuildableModule, ABC):

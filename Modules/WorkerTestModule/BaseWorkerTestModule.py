@@ -1,6 +1,8 @@
 from abc import abstractmethod, ABC
 from typing import Callable
 
+from Utils.UiTypes import UiType
+
 
 class BaseWorkerTestModule(ABC):
     # ------------------------------
