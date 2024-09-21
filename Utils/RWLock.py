@@ -74,16 +74,19 @@ class RWLock:
             yield
         except Exception as e:
             Logger().log_error(f"RW lock caught error: {e}", LogLevel.HIGH_FREQ)
+            raise e
         finally:
-            self.get_write()
+            self.release_write()
 
 
-class LockableObject:
+class ObjectModel:
     # ------------------------------
     # Class fields
     # ------------------------------
 
     _lock: RWLock
+    _op_lock: Lock
+    _gen_num: int
 
     # ------------------------------
     # Class creation
@@ -101,3 +104,31 @@ class LockableObject:
 
     def get_lock(self) -> RWLock:
         return self._lock
+
+    def get_gen_num_unlocked(self) -> int:
+        return self._gen_num
+
+    def get_gen_num_locked(self) -> int:
+        with self._lock.read():
+            return self.get_gen_num_unlocked()
+
+    def increment_gen_num_unlocked(self) -> None:
+        self._gen_num += 1
+
+    def increment_gen_num_locked(self) -> None:
+        with self._lock.write():
+            self.increment_gen_num_unlocked()
+
+
+    @contextmanager
+    def perform_operation(self):
+        if not self._op_lock.acquire(blocking=False):
+            raise ValueError("Operation already in progress")
+
+        try:
+            yield
+        except Exception as e:
+            Logger().log_error(f"Exception caught during operation: {e}", LogLevel.HIGH_FREQ)
+            raise e
+        finally:
+            self._op_lock.release()

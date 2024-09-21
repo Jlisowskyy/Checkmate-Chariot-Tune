@@ -46,3 +46,15 @@ def dump_content_to_file_on_crash(content: str) -> None:
 
     with open(file_name, "w") as file:
         file.write(content)
+
+def validate_dir(dir_path: str) -> None:
+    if not os.path.exists(dir_path):
+        raise ValueError(f"Path {dir_path} does not exist")
+    if not os.path.isdir(dir_path):
+        raise ValueError(f"Path {dir_path} is not a directory")
+
+def validate_file(file_path: str) -> None:
+    if not os.path.exists(file_path):
+        raise ValueError(f"Path {file_path} does not exist")
+    if not os.path.isfile(file_path):
+        raise ValueError(f"Path {file_path} is not a file")

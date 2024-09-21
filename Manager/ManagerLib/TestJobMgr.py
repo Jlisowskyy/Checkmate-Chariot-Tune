@@ -2,7 +2,7 @@ from Utils.Logger import Logger, LogLevel
 from ...Utils.GlobalObj import GlobalObj
 
 
-class TestJobMgr(metaclass=GlobalObj):
+class TestJobMgr():
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -20,6 +20,9 @@ class TestJobMgr(metaclass=GlobalObj):
     # ------------------------------
     # Class interaction
     # ------------------------------
+
+    def stop_task_jobs(self, task_id: int, task_gen_num: int) -> None:
+        pass
 
     # ------------------------------
     # Private methods
