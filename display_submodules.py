@@ -1,6 +1,6 @@
 #!/bin/python
 
-from Modules.SubModuleManager import SubModuleManager
+from Modules.SubModuleMgr import SubModuleMgr
 
 if __name__ == "__main__":
-    print(SubModuleManager().get_all_submodules())
+    print(SubModuleMgr().get_all_submodules())

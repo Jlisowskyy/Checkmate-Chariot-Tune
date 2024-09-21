@@ -2,8 +2,7 @@ from enum import IntEnum
 from threading import Lock
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
-from Modules.ModuleMgr import ModuleMgr
-from Utils.GlobalObj import GlobalObj
+from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
 from Utils.Helpers import validate_dir
 from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
@@ -32,7 +31,9 @@ class TestTask(ObjectModel):
 
     _config_json: str
 
-    _submodules_config_json: str
+    _submodules_config_json: dict[str, str]
+
+    _task_module: BaseManagerTestModule | None
 
     # ------------------------------
     # Class creation
@@ -43,11 +44,10 @@ class TestTask(ObjectModel):
         self._module_name = module_name
         self._build_dir = build_dir
         self._state = TaskState.UNINITIATED
+        self._task_module = None
 
         validate_dir(build_dir)
-
-        if self._module_name not in ModuleMgr().get_all_modules():
-            raise ValueError(f"Module {module_name} not found")
+        ManagerComponents().get_module_mgr().validate_module(module_name)
 
         with TestTask._obj_counter_lock:
             self._task_id = TestTask._obj_counter
@@ -59,7 +59,7 @@ class TestTask(ObjectModel):
     # State changing methods
     # ------------------------------
 
-    def try_to_init(self, submodules_json: str) -> list:
+    def try_to_init(self, submodules_json: dict[str, str]) -> list:
         with self.perform_operation():
             with self.get_lock().read():
                 if self._state != TaskState.UNINITIATED:
@@ -170,7 +170,8 @@ class TestTask(ObjectModel):
         pass
 
     def _try_to_init_modules(self) -> None:
-        pass
+        self._task_module = ManagerComponents().get_module_mgr().get_module_manager_part(self._module_name)(
+            self._submodules_config_json)
 
     def _build_submodules(self) -> None:
         pass

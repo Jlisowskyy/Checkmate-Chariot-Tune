@@ -58,3 +58,50 @@ def validate_file(file_path: str) -> None:
         raise ValueError(f"Path {file_path} does not exist")
     if not os.path.isfile(file_path):
         raise ValueError(f"Path {file_path} is not a file")
+
+
+def validate_string(obj: any) -> None:
+    if not isinstance(obj, str):
+        raise ValueError(f"Object {obj} is not a string")
+
+
+def validate_int(obj: any) -> None:
+    if not isinstance(obj, int):
+        raise ValueError(f"Object {obj} is not an integer")
+
+
+def validate_float(obj: any) -> None:
+    if not isinstance(obj, float):
+        raise ValueError(f"Object {obj} is not a float")
+
+
+def validate_list_str(obj: any) -> None:
+    if not isinstance(obj, list):
+        raise ValueError(f"Object {obj} is not a list")
+    if not all(isinstance(x, str) for x in obj):
+        raise ValueError(f"Object {obj} is not a list of strings")
+
+
+def validate_dict(obj: any) -> None:
+    if not isinstance(obj, dict):
+        raise ValueError(f"Object {obj} is not a dictionary")
+
+
+def validate_dict_str(obj: any) -> None:
+    if not isinstance(obj, dict):
+        raise ValueError(f"Object {obj} is not a dictionary")
+    if not all(isinstance(x, str) for x in obj.keys()):
+        raise ValueError(f"Object {obj} is not a dictionary with string keys")
+
+
+def validate_dict_str_str(obj: any) -> None:
+    validate_dict_str(obj)
+    if not all(isinstance(x, str) for x in obj.values()):
+        raise ValueError(f"Object {obj} is not a dictionary with string values")
+
+
+def validate_dict_str_int(obj: any) -> None:
+    validate_dict_str(obj)
+
+    if not all(isinstance(x, int) for x in obj.values()):
+        raise ValueError(f"Object {obj} is not a dictionary with int values")

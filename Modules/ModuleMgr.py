@@ -17,6 +17,9 @@ class ModuleMgr:
     def __init__(self) -> None:
         pass
 
+    def destroy(self) -> None:
+        pass
+
     # ------------------------------
     # Class interaction
     # ------------------------------
@@ -42,6 +45,10 @@ class ModuleMgr:
         if module_name not in BaseManagerTestModule.ManagerTestModuleFactoryMethods:
             raise ValueError(f"Module {module_name} not found in ManagerTestModuleFactoryMethods")
         return BaseManagerTestModule.ManagerTestModuleFactoryMethods[module_name]
+
+    def validate_module(self, module_name: str) -> None:
+        if module_name not in self.get_all_modules():
+            raise ValueError(f"Module {module_name} not found")
 
     # ------------------------------
     # Private methods

@@ -3,7 +3,7 @@ from collections.abc import Callable
 from .Submodules import *
 
 
-class SubModuleManager:
+class SubModuleMgr:
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -13,6 +13,9 @@ class SubModuleManager:
     # ------------------------------
 
     def __init__(self) -> None:
+        pass
+
+    def destroy(self) -> None:
         pass
 
     # ------------------------------
@@ -34,6 +37,12 @@ class SubModuleManager:
         if submodule_name not in SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name]:
             raise ValueError(f"Submodule {submodule_name} not found in SubModulesFactoryMethods[{submodule_type_name}]")
         return SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name][submodule_name]
+
+    def validate_submodule(self, submodule_type_name: str, submodule_name: str) -> None:
+        if submodule_type_name not in SubModulesRegistry.SubModulesFactoryMethods:
+            raise ValueError(f"Submodule type {submodule_type_name} not found")
+        if submodule_name not in SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name]:
+            raise ValueError(f"Submodule {submodule_name} not found in SubmoduleByType[{submodule_type_name}]")
 
     # ------------------------------
     # Private methods

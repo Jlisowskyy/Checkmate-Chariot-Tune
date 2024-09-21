@@ -1,6 +1,4 @@
 from Utils.Logger import Logger, LogLevel
-from ...Utils.GlobalObj import GlobalObj
-
 
 class TestJobMgr():
     # ------------------------------
