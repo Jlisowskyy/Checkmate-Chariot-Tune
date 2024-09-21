@@ -1,9 +1,10 @@
+import json
 from enum import IntEnum
 from threading import Lock
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
-from Utils.Helpers import validate_dir
+from Utils.Helpers import validate_dir, validate_dict_str_list_str
 from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
 
@@ -30,8 +31,9 @@ class TestTask(ObjectModel):
     _task_id: int
 
     _config_json: str
+    _build_config_json: str
 
-    _submodules_config_json: dict[str, str]
+    _submodules_config_json: dict[str, list[str]]
 
     _task_module: BaseManagerTestModule | None
 
@@ -59,16 +61,19 @@ class TestTask(ObjectModel):
     # State changing methods
     # ------------------------------
 
-    def try_to_init(self, submodules_json: dict[str, str]) -> list:
+    def try_to_init(self, submodules_json: str) -> list:
+        submodules_parsed: dict[str, list[str]] = json.loads(submodules_json)
+        validate_dict_str_list_str(submodules_parsed)
+
         with self.perform_operation():
             with self.get_lock().read():
                 if self._state != TaskState.UNINITIATED:
                     raise ValueError(f"Task {self._task_id} already initiated")
 
-            rv = self._get_sub_modules_to_pick(submodules_json)
+            rv = self._get_sub_modules_to_pick(submodules_parsed)
 
             with self.get_lock().write():
-                self._submodules_config_json = submodules_json
+                self._submodules_config_json = submodules_parsed
 
             if len(rv) == 0:
                 self._try_to_init_modules()
@@ -76,13 +81,17 @@ class TestTask(ObjectModel):
 
             return rv
 
-    def try_to_build(self) -> None:
+    def try_to_build(self, config_json: str) -> None:
         with self.perform_operation():
             with self.get_lock().read():
                 if self._state != TaskState.INITIATED:
                     raise ValueError(f"Task {self._task_id} not initiated")
 
-            self._build_submodules()
+            self._build_submodules(config_json)
+
+            with self.get_lock().write():
+                self._build_config_json = config_json
+
             self._change_state(TaskState.BUILT)
 
     def try_to_config(self, config_json: str) -> None:
@@ -149,7 +158,7 @@ class TestTask(ObjectModel):
 
     def get_submodules_config_json(self) -> str:
         with self.get_lock().read():
-            return self._submodules_config_json
+            return json.dumps(self._submodules_config_json)
 
     # ------------------------------
     # Other methods
@@ -166,14 +175,13 @@ class TestTask(ObjectModel):
     # Private methods
     # ------------------------------
 
-    def _get_sub_modules_to_pick(self, submodules_json: str) -> list:
+    def _get_sub_modules_to_pick(self, submodules_json: dict[str, list[str]]) -> list:
         pass
 
     def _try_to_init_modules(self) -> None:
-        self._task_module = ManagerComponents().get_module_mgr().get_module_manager_part(self._module_name)(
-            self._submodules_config_json)
+        pass
 
-    def _build_submodules(self) -> None:
+    def _build_submodules(self, config_json: str) -> None:
         pass
 
     def _config_submodules(self, config_json: str) -> None:

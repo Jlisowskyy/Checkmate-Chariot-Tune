@@ -4,8 +4,15 @@ from subprocess import Popen, PIPE
 
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
 from Utils.Logger import Logger, LogLevel
-from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_factory_method
-from ..EngineModule.BaseEngineModule import EngineFactoryMethods, BaseEngineModule
+from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_builder
+from ..EngineModule.BaseEngineModule import EngineModuleBuilders, BaseEngineModule
+from ...ModuleBuilder import ModuleBuilder
+from ...ModuleHelpers import ConfigSpecElement
+
+
+# ------------------------------
+# Module Implementation
+# ------------------------------
 
 
 class CuteChessModule(BaseChessTournamentModule):
@@ -88,7 +95,7 @@ class CuteChessModule(BaseChessTournamentModule):
 
     async def _prepare_config_for_engine(self, config_out: list[dict[str, str]], startup_config: dict[str, str],
                                          engine_name: str) -> None:
-        if engine_name not in EngineFactoryMethods:
+        if engine_name not in EngineModuleBuilders:
             raise Exception(f"Provided engine: {engine_name} is not supported!")
 
         if engine_name in self._engines:
@@ -97,7 +104,7 @@ class CuteChessModule(BaseChessTournamentModule):
         if "build_dir" not in startup_config:
             startup_config["build_dir"] = self._build_dir
 
-        factory = EngineFactoryMethods[engine_name]
+        factory = EngineModuleBuilders[engine_name]
         engine = factory(startup_config)
         await engine.build_module()
         engine_config = await engine.get_config()
@@ -174,17 +181,19 @@ class CuteChessModule(BaseChessTournamentModule):
         dump_content_to_file_on_crash(output)
         raise Exception(f"Failed to find finished game line in output from game played with command: {command}")
 
+# ------------------------------
+# Builder Implementation
+# ------------------------------
 
-def build_from_json(json_dict: dict[str, str]) -> CuteChessModule:
-    if "build_dir" not in json_dict:
-        raise Exception("Missing build_dir in json!")
+class CuteChessModuleBuilder(ModuleBuilder):
 
-    if not isinstance(json_dict["build_dir"], str):
-        raise Exception("build_dir should be a string!")
+    def build(self, json_config: dict[str, str]) -> any:
+        pass
 
-    build_dir = json_dict["build_dir"]
+    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
+        pass
 
-    return CuteChessModule(build_dir)
+    def get_next_submodule_needed(self, json_config: dict[str, str]) -> ConfigSpecElement:
+        pass
 
-
-append_tournament_factory_method(CuteChessModule.TOURNAMENT_NAME, build_from_json)
+append_tournament_builder(CuteChessModule.TOURNAMENT_NAME, CuteChessModuleBuilder)

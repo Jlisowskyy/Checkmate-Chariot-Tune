@@ -1,13 +1,17 @@
-from abc import ABC, abstractmethod
-from typing import Callable
+from abc import abstractmethod
 
-from ..SubModulesRegistry import append_submodule_factory_methods
+from ..SubModulesRegistry import append_submodule_builders
+from ...ModuleBuilder import ModuleBuilderFactory
+from ...ModuleHelpers import ConfigSpecElement, UiType, build_submodule_spec_element
+from ...NonBuildableModule import NonBuildableModule
 
 
-class BaseTrainingMethodModule(ABC):
+class BaseTrainingMethodModule(NonBuildableModule):
     # ------------------------------
     # Class fields
     # ------------------------------
+
+    SUBMODULE_TYPE_NAME = "TrainingMethod"
 
     # ------------------------------
     # Class creation
@@ -45,10 +49,9 @@ class BaseTrainingMethodModule(ABC):
         pass
 
 
-TrainingMethodModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseTrainingMethodModule]] = {}
-append_submodule_factory_methods("TrainingMethod", TrainingMethodModuleFactoryMethods)
+TrainingMethodModuleBuilders: dict[str, ModuleBuilderFactory] = {}
+append_submodule_builders(BaseTrainingMethodModule.SUBMODULE_TYPE_NAME, TrainingMethodModuleBuilders)
 
-def append_test_module_factory_method(module: str,
-                                      factory: Callable[[dict[str, str]], BaseTrainingMethodModule]) -> None:
-    if module not in TrainingMethodModuleFactoryMethods:
-        TrainingMethodModuleFactoryMethods[module] = factory
+def append_test_module_builder(module: str, builder: ModuleBuilderFactory) -> None:
+    if module not in TrainingMethodModuleBuilders:
+        TrainingMethodModuleBuilders[module] = builder

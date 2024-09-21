@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABC
-from typing import Callable
 
-from Utils.UiTypes import UiType
+from Modules.ModuleBuilder import ModuleBuilderFactory
 
 
 class BaseWorkerTestModule(ABC):
@@ -33,9 +32,9 @@ class BaseWorkerTestModule(ABC):
         pass
 
 
-WorkerTestModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseWorkerTestModule]] = {}
+WorkerTestModuleBuilders: dict[str, ModuleBuilderFactory] = {}
 
 
-def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseWorkerTestModule]) -> None:
-    if module not in WorkerTestModuleFactoryMethods:
-        WorkerTestModuleFactoryMethods[module] = factory
+def append_test_module_builder(module: str, builder: ModuleBuilderFactory) -> None:
+    if module not in WorkerTestModuleBuilders:
+        WorkerTestModuleBuilders[module] = builder

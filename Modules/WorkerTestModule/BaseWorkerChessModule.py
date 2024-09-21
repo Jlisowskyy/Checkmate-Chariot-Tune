@@ -1,8 +1,15 @@
 import json
 
 from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
-from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_factory_method
+from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_builder
+from ..ManagerTestModule.BaseManagerChessModule import BaseManagerChessModule
+from ..ModuleBuilder import ModuleBuilder, T
+from ..ModuleHelpers import ConfigSpecElement
 
+
+# ------------------------------
+# Module Implementation
+# ------------------------------
 
 class ChessWorkerTestModule(BaseWorkerTestModule):
     # ------------------------------
@@ -61,18 +68,18 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     # Helper methods
     # ------------------------------
 
+# ------------------------------
+# Builder Implementation
+# ------------------------------
 
-def build_from_json(arg: dict[str, str]) -> ChessWorkerTestModule:
-    if "chess_tournament_module" not in arg:
-        raise Exception("Missing chess_tournament_module in json")
+class ChessWorkerTestModuleBuilder(ModuleBuilder):
+    def _get_build_spec_internal(self) -> list[ConfigSpecElement]:
+        pass
 
-    if "build_dir" not in arg:
-        raise Exception("Missing build_dir in json")
+    def build(self, json_config: dict[str, str]) -> T:
+        pass
 
-    chess_tournament_module_name = arg["chess_tournament_module"]
-    build_dir = arg["build_dir"]
-    chess_tournament_module = TournamentFactoryMethods[chess_tournament_module_name](build_dir, arg)
-    return ChessWorkerTestModule(chess_tournament_module)
+    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
+        pass
 
-
-append_test_module_factory_method("BaseChessModule", build_from_json)
+append_test_module_builder("BaseChessModule", lambda : ChessWorkerTestModuleBuilder())

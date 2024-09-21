@@ -1,7 +1,14 @@
 import os
 
 from Utils.Helpers import run_shell_command
-from .BaseEngineModule import BaseEngineModule, append_engine_factory_method
+from .BaseEngineModule import BaseEngineModule, append_engine_builder
+from ...ModuleBuilder import ModuleBuilder
+from ...ModuleHelpers import ConfigSpecElement
+
+
+# ------------------------------
+# Module Implementation
+# ------------------------------
 
 
 class CheckmateChariotModule(BaseEngineModule):
@@ -56,14 +63,20 @@ class CheckmateChariotModule(BaseEngineModule):
         return f"tune {param_name} {param_value}"
 
 
-def build_from_json(json: dict[str, str]) -> CheckmateChariotModule:
-    if "build_dir" not in json or not isinstance(json["build_dir"], str):
-        raise ValueError("Invalid JSON: missing 'build_dir' field")
+# ------------------------------
+# Builder Implementation
+# ------------------------------
 
-    build_dir = json["build_dir"]
-    commit = json["commit"] if "commit" in json and isinstance(json["commit"], str) else ""
+class CheckmateChariotModuleBuilder(ModuleBuilder):
 
-    return CheckmateChariotModule(build_dir, commit)
+    def build(self, json_config: dict[str, str]) -> any:
+        pass
+
+    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
+        pass
+
+    def get_next_submodule_needed(self, json_config: dict[str, str]) -> ConfigSpecElement:
+        pass
 
 
-append_engine_factory_method(CheckmateChariotModule.ENGINE_NAME, build_from_json)
+append_engine_builder(CheckmateChariotModule.ENGINE_NAME, CheckmateChariotModuleBuilder)

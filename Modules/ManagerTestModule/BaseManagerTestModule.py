@@ -1,13 +1,15 @@
 from abc import abstractmethod, ABC
-from typing import Callable
 
-from Utils.UiTypes import UiType
+from Modules.Module import Module
+from Modules.ModuleBuilder import ModuleBuilderFactory
 
 
-class BaseManagerTestModule(ABC):
+class BaseManagerTestModule(ABC, Module):
     # ------------------------------
     # Class fields
     # ------------------------------
+
+    MODULE_TYPE_NAME = "BaseManagerTestModule"
 
     # ------------------------------
     # Class creation
@@ -21,10 +23,6 @@ class BaseManagerTestModule(ABC):
     # ------------------------------
 
     @abstractmethod
-    async def prepare_config_args(self) -> str:
-        pass
-
-    @abstractmethod
     async def prepare_test_args(self) -> str:
         pass
 
@@ -32,20 +30,10 @@ class BaseManagerTestModule(ABC):
     async def sync_test_results(self, response: str) -> None:
         pass
 
-    @staticmethod
-    @abstractmethod
-    async def get_module_config_submodules() -> list[str]:
-        pass
 
-    # [Name, Description, Type]
-    @staticmethod
-    @abstractmethod
-    async def get_config_fields(config: list[str]) -> list[[str, str, UiType]]:
-        pass
-
-ManagerTestModuleFactoryMethods: dict[str, Callable[[dict[str, str]], BaseManagerTestModule]] = {}
+ManagerTestModuleBuilders: dict[str, ModuleBuilderFactory] = {}
 
 
-def append_test_module_factory_method(module: str, factory: Callable[[dict[str, str]], BaseManagerTestModule]) -> None:
-    if module not in ManagerTestModuleFactoryMethods:
-        ManagerTestModuleFactoryMethods[module] = factory
+def append_test_module_builder(module: str, builder: ModuleBuilderFactory) -> None:
+    if module not in ManagerTestModuleBuilders:
+        ManagerTestModuleBuilders[module] = builder

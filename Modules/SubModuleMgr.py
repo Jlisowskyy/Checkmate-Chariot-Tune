@@ -1,9 +1,9 @@
-from collections.abc import Callable
-
+from Utils.GlobalObj import GlobalObj
+from .ModuleBuilder import ModuleBuilder
 from .Submodules import *
 
 
-class SubModuleMgr:
+class SubModuleMgr(metaclass=GlobalObj):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -25,24 +25,29 @@ class SubModuleMgr:
     def get_all_submodules(self) -> list[[str, list[str]]]:
         rv: list[[str, list[str]]] = []
 
-        for submodule_type_name in SubModulesRegistry.SubModulesFactoryMethods.keys():
+        for submodule_type_name in SubModulesRegistry.SubModulesBuilders.keys():
             rv.append(
-                [submodule_type_name, list(SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name].keys())])
+                [submodule_type_name, list(SubModulesRegistry.SubModulesBuilders[submodule_type_name].keys())])
 
         return rv
 
-    def get_submodule(self, submodule_type_name: str, submodule_name: str) -> Callable[[dict[str, str]], object]:
-        if submodule_type_name not in SubModulesRegistry.SubModulesFactoryMethods:
-            raise ValueError(f"Submodule type {submodule_type_name} not found in SubModulesFactoryMethods")
-        if submodule_name not in SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name]:
-            raise ValueError(f"Submodule {submodule_name} not found in SubModulesFactoryMethods[{submodule_type_name}]")
-        return SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name][submodule_name]
+    def get_all_submodules_by_type(self, submodule_type_name: str) -> list[str]:
+        if submodule_type_name not in SubModulesRegistry.SubModulesBuilders:
+            raise ValueError(f"Submodule type {submodule_type_name} not found in SubModulesBuilders")
+        return list(SubModulesRegistry.SubModulesBuilders[submodule_type_name].keys())
+
+    def get_submodule(self, submodule_type_name: str, submodule_name: str) -> ModuleBuilder:
+        if submodule_type_name not in SubModulesRegistry.SubModulesBuilders:
+            raise ValueError(f"Submodule type {submodule_type_name} not found in SubModulesBuilders")
+        if submodule_name not in SubModulesRegistry.SubModulesBuilders[submodule_type_name]:
+            raise ValueError(f"Submodule {submodule_name} not found in SubModulesBuilders[{submodule_type_name}]")
+        return SubModulesRegistry.SubModulesBuilders[submodule_type_name][submodule_name]()
 
     def validate_submodule(self, submodule_type_name: str, submodule_name: str) -> None:
-        if submodule_type_name not in SubModulesRegistry.SubModulesFactoryMethods:
+        if submodule_type_name not in SubModulesRegistry.SubModulesBuilders:
             raise ValueError(f"Submodule type {submodule_type_name} not found")
-        if submodule_name not in SubModulesRegistry.SubModulesFactoryMethods[submodule_type_name]:
-            raise ValueError(f"Submodule {submodule_name} not found in SubmoduleByType[{submodule_type_name}]")
+        if submodule_name not in SubModulesRegistry.SubModulesBuilders[submodule_type_name]:
+            raise ValueError(f"Submodule {submodule_name} not found in SubModulesBuilders[{submodule_type_name}]")
 
     # ------------------------------
     # Private methods

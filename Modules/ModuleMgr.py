@@ -1,11 +1,11 @@
-from typing import Callable
-
+from Utils.GlobalObj import GlobalObj
 from Utils.Logger import Logger, LogLevel
 from .ManagerTestModule import *
+from .ModuleBuilder import ModuleBuilder
 from .WorkerTestModule import *
 
 
-class ModuleMgr:
+class ModuleMgr(metaclass=GlobalObj):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -27,8 +27,8 @@ class ModuleMgr:
     def get_all_modules(self) -> list[str]:
         rv: list[str] = []
 
-        for module in BaseWorkerTestModule.WorkerTestModuleFactoryMethods.keys():
-            if module not in BaseManagerTestModule.ManagerTestModuleFactoryMethods.keys():
+        for module in BaseWorkerTestModule.WorkerTestModuleBuilders.keys():
+            if module not in BaseManagerTestModule.ManagerTestModuleBuilders.keys():
                 Logger().log_error(f"WorkerTestModule: {module} not found in ManagerTestModuleFactoryMethods",
                                    LogLevel.LOW_FREQ)
             else:
@@ -36,15 +36,15 @@ class ModuleMgr:
 
         return rv
 
-    def get_module_worker_part(self, module_name: str) -> Callable[[dict[str, str]], BaseWorkerTestModule]:
-        if module_name not in BaseWorkerTestModule.WorkerTestModuleFactoryMethods:
+    def get_module_worker_part(self, module_name: str) -> ModuleBuilder:
+        if module_name not in BaseWorkerTestModule.WorkerTestModuleBuilders:
             raise ValueError(f"Module {module_name} not found in WorkerTestModuleFactoryMethods")
-        return BaseWorkerTestModule.WorkerTestModuleFactoryMethods[module_name]
+        return BaseWorkerTestModule.WorkerTestModuleBuilders[module_name]()
 
-    def get_module_manager_part(self, module_name: str) -> Callable[[dict[str, str]], BaseManagerTestModule]:
-        if module_name not in BaseManagerTestModule.ManagerTestModuleFactoryMethods:
+    def get_module_manager_part(self, module_name: str) -> ModuleBuilder:
+        if module_name not in BaseManagerTestModule.ManagerTestModuleBuilders:
             raise ValueError(f"Module {module_name} not found in ManagerTestModuleFactoryMethods")
-        return BaseManagerTestModule.ManagerTestModuleFactoryMethods[module_name]
+        return BaseManagerTestModule.ManagerTestModuleBuilders[module_name]()
 
     def validate_module(self, module_name: str) -> None:
         if module_name not in self.get_all_modules():

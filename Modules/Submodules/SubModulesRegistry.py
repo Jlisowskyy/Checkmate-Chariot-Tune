@@ -1,9 +1,11 @@
 from collections.abc import Callable
 
-SubModulesFactoryMethods: dict[str, dict[str, Callable[[dict[str, str]], object]]] = {}
+from Modules.ModuleBuilder import ModuleBuilderFactory
+
+SubModulesBuilders: dict[str, dict[str, ModuleBuilderFactory]] = {}
 
 
-def append_submodule_factory_methods(module_name: str,
-                                     factory_methods: dict[str, Callable[[dict[str, str]], object]]) -> None:
-    if module_name not in SubModulesFactoryMethods:
-        SubModulesFactoryMethods[module_name] = factory_methods
+def append_submodule_builders(module_name: str,
+                              builders: dict[str, ModuleBuilderFactory]) -> None:
+    if module_name not in SubModulesBuilders:
+        SubModulesBuilders[module_name] = builders

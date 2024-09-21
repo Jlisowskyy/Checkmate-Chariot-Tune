@@ -4,7 +4,8 @@ from typing import Callable
 
 from Modules.BuildableModule import BuildableModule
 from Utils.Logger import Logger, LogLevel
-from ..SubModulesRegistry import append_submodule_factory_methods
+from ..SubModulesRegistry import append_submodule_builders
+from ...ModuleBuilder import ModuleBuilderFactory
 
 
 class BaseChessTournamentModule(BuildableModule, ABC):
@@ -145,10 +146,10 @@ class BaseChessTournamentModule(BuildableModule, ABC):
                                                                           INFINITY)
 
 
-TournamentFactoryMethods: dict[str, Callable[[dict[str, str]], BaseChessTournamentModule]] = {}
-append_submodule_factory_methods("ChessTournament", TournamentFactoryMethods)
+TournamentFactoryMethods: dict[str, ModuleBuilderFactory] = {}
+append_submodule_builders("ChessTournament", TournamentFactoryMethods)
 
-def append_tournament_factory_method(tournament: str,
-                                     factory: Callable[[dict[str, str]], BaseChessTournamentModule]) -> None:
+def append_tournament_builder(tournament: str,
+                              builder: ModuleBuilderFactory) -> None:
     if tournament not in TournamentFactoryMethods:
-        TournamentFactoryMethods[tournament] = factory
+        TournamentFactoryMethods[tournament] = builder
