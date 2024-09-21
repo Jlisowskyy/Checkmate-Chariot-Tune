@@ -1,11 +1,12 @@
 from abc import abstractmethod, ABC
 from collections.abc import Callable
 
-from Modules.ModuleHelpers import ConfigSpecElement, UiType, validate_submodule_spec_string, \
-    validate_submodule_spec_string_list, extract_submodule_type, validate_submodule_spec_args
+from Modules.ModuleHelpers import ConfigSpecElement, extract_submodule_type, validate_submodule_spec_args, \
+    extract_submodule_name, UiType
 from Modules.SubModuleMgr import SubModuleMgr
 
 
+# Note: for submodule config name should be same as constructor parameter name
 class ModuleBuilder(ABC):
     # ------------------------------
     # Class fields
@@ -31,70 +32,47 @@ class ModuleBuilder(ABC):
 
     def get_next_submodule_needed(self, json_config: dict[str, list[str]], name_prefix: str = ""
                                   ) -> ConfigSpecElement | None:
-        for submodule in self._submodules:
-            submodule_full_path = f"{name_prefix}.{self._submodule_type}.{self._submodule_name}.{submodule.get_name()}"
+        return self._iter_submodules(
+            json_config,
+            name_prefix,
+            lambda name, builder, _: builder.get_next_submodule_needed(json_config, name),
+            lambda _, conf: conf
+        )
 
-            if submodule_full_path in json_config:
-                module_names = json_config[submodule_full_path]
 
-                validate_submodule_spec_args(module_names, submodule.get_ui_type())
-
-                submodule_type = extract_submodule_type(submodule.get_name())
-                path_prefix = f"{name_prefix}.{self._submodule_type}.{self._submodule_name}"
-                for module_name in module_names:
-                    builder = SubModuleMgr().get_submodule(submodule_type, module_name)
-
-                    next_submodule = builder.get_next_submodule_needed(json_config, path_prefix)
-
-                    if next_submodule is not None:
-                        return next_submodule
-            else:
-                return submodule
-
-        return None
 
     def get_build_spec(self, json_config: dict[str, list[str]], name_prefix: str = "") -> list[ConfigSpecElement]:
         full_spec: list[ConfigSpecElement] = []
 
-        path_prefix = f"{name_prefix}.{self._submodule_type}.{self._submodule_name}"
-        build_spec = self._get_build_spec_internal(path_prefix)
+        full_spec.extend(self._get_build_spec_internal(name_prefix))
+        self._iter_submodules(
+            json_config,
+            name_prefix,
+            lambda name, builder, _: full_spec.extend(builder.get_build_spec(json_config, name)),
+            ModuleBuilder._missing_config_spec
+        )
 
-        for submodule in self._submodules:
-            submodule_full_path = f"{path_prefix}.{submodule.get_name()}"
+        return full_spec
 
-            if submodule_full_path in json_config:
-                module_names = json_config[submodule.get_name()]
+    def get_config_spec(self, json_config: dict[str, list[str]], name_prefix: str = "") -> list[ConfigSpecElement]:
+        full_spec: list[ConfigSpecElement] = []
 
-                validate_submodule_spec_args(module_names, submodule.get_ui_type())
+        full_spec.extend(self._get_config_spec_internal(name_prefix))
+        self._iter_submodules(
+            json_config,
+            name_prefix,
+            lambda name, builder, _: full_spec.extend(builder.get_config_spec(json_config, name)),
+            ModuleBuilder._missing_config_spec
+        )
 
-                submodule_type = extract_submodule_type(submodule.get_name())
-                for module_name in module_names:
-                    builder = SubModuleMgr().get_submodule(submodule_type, module_name)
-
-                    next_submodule = builder.get_next_submodule_needed(json_config, path_prefix)
-
-            else:
-                return submodule
-
-        return None
-
-    def get_config_spec(self) -> list[ConfigSpecElement]:
-        config_spec = self._get_config_spec_internal()
-
-        for submodule in self._submodules:
-            [mod_type, mod_name] = get_type_mod_name(submodule.get_name())
-            builder = SubModuleMgr().get_submodule(mod_type, mod_name)
-
-            config_spec += builder._get_config_spec_internal()
-
-        return config_spec
+        return full_spec
 
     # ------------------------------
     # Abstract methods
     # ------------------------------
 
     @abstractmethod
-    def build(self, json_config: dict[str, str]) -> any:
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
         pass
 
     @abstractmethod
@@ -112,9 +90,9 @@ class ModuleBuilder(ABC):
     def _iter_submodules(self,
                          json_config: dict[str, list[str]],
                          name_prefix: str,
-                         on_hit: Callable[[str], None],
-                         on_miss: Callable[[str], None]
-                         ) -> None:
+                         on_hit: Callable[[str, 'ModuleBuilder', ConfigSpecElement], any],
+                         on_miss: Callable[[str, ConfigSpecElement], any]
+                         ) -> any:
         path_prefix = f"{name_prefix}.{self._submodule_type}.{self._submodule_name}"
 
         for submodule in self._submodules:
@@ -129,9 +107,48 @@ class ModuleBuilder(ABC):
                 for module_name in module_names:
                     builder = SubModuleMgr().get_submodule(submodule_type, module_name)
 
-                    next_submodule = builder.get_next_submodule_needed(json_config, path_prefix)
+                    result = on_hit(path_prefix, builder, submodule)
 
+                    if result is not None:
+                        return result
             else:
-                return submodule
+                result = on_miss(submodule.get_name(), submodule)
+
+                if result is not None:
+                    return result
+
+        return None
+
+    @staticmethod
+    def _missing_config_spec(name: str, conf: ConfigSpecElement) -> None:
+        raise ValueError(f"Missing json entry for submodule in path: {name} and spec: {conf}")
+
+    @staticmethod
+    def _add_built_module(
+            modules: dict[str, any],
+            json_config: dict[str, list[str]],
+            name_prefix: str,
+            builder: 'ModuleBuilder',
+            config_spec: ConfigSpecElement
+    ) -> None:
+        if config_spec.get_ui_type() == UiType.String:
+            modules.update({extract_submodule_name(config_spec.get_name()): builder.build(json_config, name_prefix)})
+        elif config_spec.get_ui_type() == UiType.StringList:
+            if extract_submodule_name(config_spec.get_name()) not in modules:
+                modules[extract_submodule_name(config_spec.get_name())] = []
+
+            modules[extract_submodule_name(config_spec.get_name())].append(builder.build(json_config, name_prefix))
+
+    def _build_submodules(self, json_config: dict[str, list[str]], name_prefix: str = "") -> dict[str, any]:
+        rv: dict[str, any] = {}
+
+        self._iter_submodules(
+            json_config,
+            name_prefix,
+            lambda name, builder, submodule: ModuleBuilder._add_built_module(rv, json_config, name, builder, submodule),
+            ModuleBuilder._missing_config_spec
+        )
+
+        return rv
 
 ModuleBuilderFactory = Callable[[], ModuleBuilder]

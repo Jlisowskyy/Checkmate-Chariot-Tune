@@ -1,10 +1,11 @@
 import os.path
 from abc import ABC, abstractmethod
 
+from Modules.Module import Module
 from Utils.Logger import Logger, LogLevel
 
 
-class BuildableModule(ABC):
+class BuildableModule(ABC, Module):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -44,6 +45,9 @@ class BuildableModule(ABC):
             Logger().log_error(f"Failed to build module: {self._obj_name} with error: {e}", LogLevel.LOW_FREQ)
             raise e
         Logger().log_info(f"Module with name: {self._obj_name} built correctly!", LogLevel.LOW_FREQ)
+
+    async def configure_build(self, json: str) -> None:
+        pass
 
     def is_built_correctly(self) -> bool:
         return self._is_built_correctly

@@ -3,7 +3,6 @@ from ..ModuleBuilder import ModuleBuilder
 from ..ModuleHelpers import ConfigSpecElement, build_submodule_spec_element, UiType
 from ..SubModuleMgr import SubModuleMgr
 from ..Submodules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule
-from ..Submodules.TrainingMethodsModules.SimpleTrainingModule import build_submodule_spec_configured
 
 
 # ------------------------------
@@ -53,29 +52,33 @@ class BaseManagerChessModuleBuilder(ModuleBuilder):
     # ------------------------------
 
     def __init__(self) -> None:
-        super().__init__([
-            # build_submodule_spec_configured(
-            #     BaseManagerTestModule.MODULE_TYPE_NAME,
-            #     BaseManagerTestModule.MODULE_NAME,
-            #     "chess_training_module",
-            #     "Chess Training Module",
-            #     UiType.String,
-            #     SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.MODULE_TYPE_NAME),
-            # )
-        ])
+        super().__init__(
+            [
+            build_submodule_spec_element(
+                BaseTrainingMethodModule.SUBMODULE_TYPE_NAME,
+                "training_module",
+                "Chess training method used to find best parameters for algorithms",
+                UiType.String,
+                SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE_NAME),
+            )
+            ],
+            BaseManagerChessModule.MODULE_TYPE_NAME,
+            BaseManagerChessModule.MODULE_NAME
+        )
 
     # ------------------------------
     # Abstract methods
     # ------------------------------
 
-    def _get_build_spec_internal(self) -> list[ConfigSpecElement]:
-        pass
+    def _get_config_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
 
-    def build(self, json_config: dict[str, list[str]]) -> any:
-        pass
+    def _get_build_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
 
-    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
-        pass
-
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "" ) -> any:
+        return BaseManagerChessModule(
+            **self._build_submodules(json_config, name_prefix)
+        )
 
 append_test_module_builder("BaseChessModule", lambda: BaseManagerChessModuleBuilder())

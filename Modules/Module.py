@@ -24,3 +24,6 @@ class Module(ABC):
     async def configure_module(self, json: str) -> None:
         pass
 
+    @abstractmethod
+    async def configure_build(self, json: str) -> None:
+        pass

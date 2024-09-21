@@ -115,6 +115,8 @@ def build_submodule_spec_element(
 def extract_submodule_type(submodule_spec_name: str) -> str:
     return submodule_spec_name.split(".")[0]
 
+def extract_submodule_name(submodule_spec_name: str) -> str:
+    return submodule_spec_name.split(".")[1]
 
 def validate_submodule_spec_string(obj: list[str]) -> None:
     if len(obj) != 1:
