@@ -5,12 +5,22 @@ class Module(ABC):
     # Class fields
     # ------------------------------
 
+    _module_name: str
+
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, module_name: str) -> None:
+        self._module_name = module_name
+
+
+    # ------------------------------
+    # Usual Methods
+    # ------------------------------
+
+    def get_module_name(self) -> str:
+        return self._module_name
 
     # ------------------------------
     # Abstract Methods

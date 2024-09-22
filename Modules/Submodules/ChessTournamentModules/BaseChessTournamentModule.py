@@ -2,9 +2,11 @@ from abc import abstractmethod, ABC
 
 from Modules.BuildableModule import BuildableModule
 from Utils.Logger import Logger, LogLevel
+from ..EngineModule.BaseEngineModule import BaseEngineModule
 from ..SubModulesRegistry import append_submodule_builders
 from ...ModuleBuilder import ModuleBuilderFactory, ModuleBuilder
-from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name
+from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name, \
+    build_submodule_spec_element
 from ...SubModuleMgr import SubModuleMgr
 
 
@@ -29,12 +31,25 @@ class BaseChessTournamentModule(BuildableModule, ABC):
     _resign_diff_point_range: int
     _resign_minimal_moves_above_range: int
 
+    _engines: dict[str, BaseEngineModule]
+
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, obj_name: str) -> None:
-        super().__init__(obj_name)
+    def __init__(self, tested_engines: list[BaseEngineModule], module_name: str) -> None:
+        super().__init__(module_name)
+
+        self._engines = {}
+
+        if len(tested_engines) == 0:
+            raise Exception("No engines provided for testing!")
+
+        for engine in tested_engines:
+            if engine.get_module_name() in self._engines:
+                raise Exception(f"Engine: {engine.get_module_name()} already exists in engines!")
+
+            self._engines[engine.get_module_name()] = engine
 
     # ------------------------------
     # Basic Methods
@@ -45,21 +60,41 @@ class BaseChessTournamentModule(BuildableModule, ABC):
 
         try:
             config_parsed = self._validate_and_parse_config_json(json_parsed, prefix)
-            self._extract_tournament_params(config_parsed)
+            self._extract_tournament_params(config_parsed, prefix)
 
-            await self._load_config_internal(config_parsed)
+            await self._load_config_internal(config_parsed, prefix)
         except Exception as e:
             Logger().log_info(f"Failed to get config for {self._obj_name} by error: {e}", LogLevel.MEDIUM_FREQ)
             raise e
 
         Logger().log_info(f"Config correctly loaded for tournament: {self._obj_name}", LogLevel.MEDIUM_FREQ)
 
+    async def _build_internal(self) -> None:
+        await self._build_internal_chess_tournament()
+
+        for engine in self._engines.values():
+            await engine.build_module()
+
+    async def _configure_build_internal(self, json: dict[str, any], prefix: str) -> None:
+        for engine in self._engines.values():
+            await engine.configure_build(json, prefix)
+
+        await self._configure_build_chess_tournament(json, prefix)
+
     # ------------------------------
     # Abstract Methods
     # ------------------------------
 
     @abstractmethod
-    async def _load_config_internal(self, config: any) -> None:
+    async def _build_internal_chess_tournament(self) -> None:
+        pass
+
+    @abstractmethod
+    async def _configure_build_chess_tournament(self, json: dict[str, any], prefix: str) -> None:
+        pass
+
+    @abstractmethod
+    async def _load_config_internal(self, config: any, prefix: str) -> None:
         pass
 
     @abstractmethod
@@ -71,9 +106,7 @@ class BaseChessTournamentModule(BuildableModule, ABC):
     # ------------------------------
 
     def _validate_and_parse_config_json(self, config: any, prefix: str) -> any:
-        engines_name = get_config_prefixed_name(prefix, "engines")
-        tested_engine_name = get_config_prefixed_name(prefix, "tested_engine")
-        engine_startup_name = get_config_prefixed_name(prefix, "engine_startup_commands")
+        tested_engine_name = get_config_prefixed_name(prefix, self._module_name, "tested_engine")
 
         if not isinstance(config, dict):
             raise Exception("Config must be a dictionary")
@@ -81,39 +114,19 @@ class BaseChessTournamentModule(BuildableModule, ABC):
         if not all(isinstance(elem, str) for elem in config.keys()):
             raise Exception("Config must be a dictionary with string keys")
 
-        if engines_name not in config:
-            raise Exception("No engines found in config")
-
-        if tested_engine_name not in config:
-            raise Exception("No tested_engine found in config")
-
-        if not isinstance(config[engines_name], list) or not all(
-                isinstance(elem, str) for elem in config[engines_name]):
-            raise Exception("Engines were provided in invalid format")
-
         if not isinstance(config[tested_engine_name], str):
             raise Exception("Tested_engine was provided in invalid format")
 
-        if config[tested_engine_name] not in config[engines_name]:
-            config[engines_name].append(config[tested_engine_name])
-
-        if engine_startup_name in config:
-            if ((not isinstance(config[engine_startup_name], dict) or
-                 not all(isinstance(elem, str) for elem in config[engine_startup_name].keys()) or
-                 not all(isinstance(elem, dict) for elem in config[engine_startup_name].values()) or
-                 not all(all(isinstance(dict_elem, str) for dict_elem in elem) for elem in
-                         config[engine_startup_name].values())) or
-                    not all(all(isinstance(dict_elem, str) for dict_elem in elem) for elem in
-                            config[engine_startup_name].keys())):
-                raise Exception("Engine_startup_commands was provided in invalid format")
+        tested_engine_module_name = config[tested_engine_name]
+        if tested_engine_module_name not in self._engines:
+            raise Exception(f"Tested engine: {tested_engine_module_name} is not in engines list")
 
         return config
 
-    @staticmethod
-    def _parse_and_validate(config: dict[str, any], prefix: str, return_type: type, name: str, default_value: any,
+    def _parse_and_validate(self, config: dict[str, any], prefix: str, return_type: type, name: str, default_value: any,
                             min_value: any,
                             max_value: any) -> any:
-        prefixed_name = get_config_prefixed_name(prefix, name)
+        prefixed_name = get_config_prefixed_name(prefix, self._module_name, name)
 
         if not isinstance(default_value, return_type):
             raise Exception(f"Invalid type for default value of {prefixed_name} in config")
@@ -167,11 +180,26 @@ class BaseChessTournamentModule(BuildableModule, ABC):
 
 class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
     # ------------------------------
+    # Class fields
+    # ------------------------------
+
+    # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, submodules: list[ConfigSpecElement], submodule_type: str, submodule_name: str) -> None:
-        super().__init__(submodules, submodule_type, submodule_name)
+    def __init__(self, submodules: list[ConfigSpecElement], submodule_name: str) -> None:
+        super().__init__(
+            submodules + [
+                build_submodule_spec_element(
+                    BaseEngineModule.SUBMODULE_TYPE_NAME,
+                    "tested_engines",
+                    "List of engines participating in testing",
+                    UiType.StringList,
+                    SubModuleMgr().get_all_submodules_by_type(BaseEngineModule.SUBMODULE_TYPE_NAME)
+                )
+            ],
+            submodule_name
+        )
 
     # ------------------------------
     # Basic Methods
@@ -180,7 +208,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
     def _get_config_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
         config_spec: list[ConfigSpecElement] = [
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "starting_total_time_s",
                 "Starting total time for each player in seconds",
                 UiType.String,
@@ -188,7 +216,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "increment_time",
                 "Increment time for each player in seconds",
                 UiType.String,
@@ -196,7 +224,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "draw_move_silent_moves",
                 "How many moves must be done to enter possible draw state",
                 UiType.String,
@@ -204,7 +232,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "draw_move_count_within_points_range",
                 "How many moves must be done inside abs(0 - draw_zero_point_range)"
                 " points during draw state to trigger draw",
@@ -213,7 +241,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "draw_zero_point_range",
                 "Range of points to trigger draw",
                 UiType.String,
@@ -221,7 +249,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "resign_diff_point_range",
                 "Range of points to trigger resign",
                 UiType.String,
@@ -229,7 +257,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "resign_minimal_moves_above_range",
                 "Minimal moves above resign_diff_point_range to trigger resign",
                 UiType.String,
@@ -237,7 +265,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 True
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "engines",
                 "List of engines to play against in tournament",
                 UiType.StringList,
@@ -245,7 +273,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 False
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "tested_engine",
                 "Main engine to test",
                 UiType.String,
@@ -253,7 +281,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
                 False
             ),
             build_config_spec_element(
-                f"{prefix}.{BaseChessTournamentModule.SUBMODULE_TYPE}",
+                f"{prefix}.{self._submodule_name}",
                 "engine_startup_commands",
                 "Startup commands for engines",
                 UiType.StringDictStringStringDict,

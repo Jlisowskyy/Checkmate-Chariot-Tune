@@ -2,7 +2,7 @@ from abc import abstractmethod, ABC
 from collections.abc import Callable
 
 from Modules.ModuleHelpers import ConfigSpecElement, extract_submodule_type, validate_submodule_spec_args, \
-    extract_submodule_name, UiType
+    extract_submodule_variable_name, UiType
 from Modules.SubModuleMgr import SubModuleMgr
 
 
@@ -12,17 +12,15 @@ class ModuleBuilder(ABC):
     # Class fields
     # ------------------------------
 
-    _submodules = list[ConfigSpecElement]
-    _submodule_type: str
+    _submodules: list[ConfigSpecElement]
     _submodule_name: str
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, submodules: list[ConfigSpecElement], submodule_type: str, submodule_name: str) -> None:
+    def __init__(self, submodules: list[ConfigSpecElement], submodule_name: str) -> None:
         self._submodules = submodules
-        self._submodule_type = submodule_type
         self._submodule_name = submodule_name
 
     # ------------------------------
@@ -34,7 +32,7 @@ class ModuleBuilder(ABC):
         return self._iter_submodules(
             json_config,
             name_prefix,
-            lambda name, builder, _: builder.get_next_submodule_needed(json_config, name),
+            lambda prefix, builder, _: builder.get_next_submodule_needed(json_config, prefix),
             lambda _, conf: conf
         )
 
@@ -47,7 +45,7 @@ class ModuleBuilder(ABC):
         self._iter_submodules(
             json_config,
             name_prefix,
-            lambda name, builder, _: full_spec.extend(builder.get_build_spec(json_config, name)),
+            lambda prefix, builder, _: full_spec.extend(builder.get_build_spec(json_config, prefix)),
             ModuleBuilder._missing_config_spec
         )
 
@@ -60,7 +58,7 @@ class ModuleBuilder(ABC):
         self._iter_submodules(
             json_config,
             name_prefix,
-            lambda name, builder, _: full_spec.extend(builder.get_config_spec(json_config, name)),
+            lambda prefix, builder, _: full_spec.extend(builder.get_config_spec(json_config, prefix)),
             ModuleBuilder._missing_config_spec
         )
 
@@ -92,13 +90,11 @@ class ModuleBuilder(ABC):
                          on_hit: Callable[[str, 'ModuleBuilder', ConfigSpecElement], any],
                          on_miss: Callable[[str, ConfigSpecElement], any]
                          ) -> any:
-        path_prefix = f"{name_prefix}.{self._submodule_type}.{self._submodule_name}"
-
         for submodule in self._submodules:
-            submodule_full_path = f"{path_prefix}.{submodule.get_name()}"
+            submodule_full_path = f"{name_prefix}.{submodule.get_name()}"
 
             if submodule_full_path in json_config:
-                module_names = json_config[submodule.get_name()]
+                module_names = json_config[submodule_full_path]
 
                 validate_submodule_spec_args(module_names, submodule.get_ui_type())
 
@@ -106,6 +102,8 @@ class ModuleBuilder(ABC):
                 for module_name in module_names:
                     builder = SubModuleMgr().get_submodule(submodule_type, module_name)
 
+                    var_name = extract_submodule_variable_name(submodule.get_name())
+                    path_prefix = f"{name_prefix}.{var_name}"
                     result = on_hit(path_prefix, builder, submodule)
 
                     if result is not None:
@@ -131,12 +129,14 @@ class ModuleBuilder(ABC):
             config_spec: ConfigSpecElement
     ) -> None:
         if config_spec.get_ui_type() == UiType.String:
-            modules.update({extract_submodule_name(config_spec.get_name()): builder.build(json_config, name_prefix)})
+            modules.update(
+                {extract_submodule_variable_name(config_spec.get_name()): builder.build(json_config, name_prefix)})
         elif config_spec.get_ui_type() == UiType.StringList:
-            if extract_submodule_name(config_spec.get_name()) not in modules:
-                modules[extract_submodule_name(config_spec.get_name())] = []
+            if extract_submodule_variable_name(config_spec.get_name()) not in modules:
+                modules[extract_submodule_variable_name(config_spec.get_name())] = []
 
-            modules[extract_submodule_name(config_spec.get_name())].append(builder.build(json_config, name_prefix))
+            modules[extract_submodule_variable_name(config_spec.get_name())].append(
+                builder.build(json_config, name_prefix))
 
     def _build_submodules(self, json_config: dict[str, list[str]], name_prefix: str = "") -> dict[str, any]:
         rv: dict[str, any] = {}
@@ -144,7 +144,8 @@ class ModuleBuilder(ABC):
         self._iter_submodules(
             json_config,
             name_prefix,
-            lambda name, builder, submodule: ModuleBuilder._add_built_module(rv, json_config, name, builder, submodule),
+            lambda prefix, builder, submodule: ModuleBuilder._add_built_module(rv, json_config, prefix, builder,
+                                                                               submodule),
             ModuleBuilder._missing_config_spec
         )
 

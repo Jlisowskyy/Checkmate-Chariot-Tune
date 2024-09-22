@@ -83,8 +83,8 @@ class ConfigSpecElement:
 
 
 def build_config_spec_element(
-        submodule_type: str,
-        name: str,
+        submodule_name: str,
+        variable_name: str,
         description: str,
         ui_type: UiType,
         default_value: ConfigSpecElement.default_value_type,
@@ -93,12 +93,12 @@ def build_config_spec_element(
     if default_value is not None and not isinstance(default_value, ui_type.value):
         raise ValueError(f"Default value type must be {ui_type.value}, got {type(default_value)}")
 
-    return ConfigSpecElement(get_typed_name(submodule_type, name), description, ui_type, default_value, is_optional)
+    return ConfigSpecElement(get_typed_name(submodule_name, variable_name), description, ui_type, default_value, is_optional)
 
 
 def build_submodule_spec_element(
         submodule_type: str,
-        name: str,
+        variable_name: str,
         description: str,
         ui_type: UiType,
         default_value: list[str]
@@ -108,7 +108,7 @@ def build_submodule_spec_element(
 
     validate_list_str(default_value)
     return ConfigSpecElement(
-        get_typed_name(submodule_type, name),
+        get_typed_name(submodule_type, variable_name),
         description,
         ui_type,
         default_value,
@@ -122,7 +122,7 @@ def get_typed_name(submodule_type: str, name: str) -> str:
 def extract_submodule_type(submodule_spec_name: str) -> str:
     return submodule_spec_name.split(".")[0]
 
-def extract_submodule_name(submodule_spec_name: str) -> str:
+def extract_submodule_variable_name(submodule_spec_name: str) -> str:
     return submodule_spec_name.split(".")[1]
 
 def validate_submodule_spec_string(obj: list[str]) -> None:
@@ -143,5 +143,5 @@ def validate_submodule_spec_args(obj: list[str], ui_type: UiType) -> None:
     else:
         raise ValueError(f"Invalid UiType {ui_type} for submodule spec args")
 
-def get_config_prefixed_name(prefix: str, name: str) -> str:
-    return f"{prefix}.{name}"
+def get_config_prefixed_name(prefix: str, module_name: str, var_name: str) -> str:
+    return f"{prefix}.{module_name}.{var_name}"

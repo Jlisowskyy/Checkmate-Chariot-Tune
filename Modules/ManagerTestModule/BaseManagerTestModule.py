@@ -15,8 +15,8 @@ class BaseManagerTestModule(ABC, Module):
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, module_name: str) -> None:
+        super().__init__(module_name)
 
     # ------------------------------
     # Abstract methods

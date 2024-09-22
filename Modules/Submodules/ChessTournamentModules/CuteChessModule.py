@@ -4,10 +4,10 @@ from subprocess import Popen, PIPE
 
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
 from Utils.Logger import Logger, LogLevel
-from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_builder
-from ..EngineModule.BaseEngineModule import EngineModuleBuilders, BaseEngineModule
-from ...ModuleBuilder import ModuleBuilder
-from ...ModuleHelpers import ConfigSpecElement
+from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_builder, \
+    BaseChessTournamentModuleBuilder
+from ..EngineModule.BaseEngineModule import BaseEngineModule
+from ...ModuleHelpers import ConfigSpecElement, get_config_prefixed_name
 
 
 # ------------------------------
@@ -35,9 +35,9 @@ class CuteChessModule(BaseChessTournamentModule):
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
+    def __init__(self, tested_engines: list[BaseEngineModule]) -> None:
 
-        super().__init__(CuteChessModule.TOURNAMENT_NAME)
+        super().__init__(tested_engines, CuteChessModule.TOURNAMENT_NAME)
 
         self._config_file_path = ""
         self._tested_engine = ""
@@ -48,7 +48,7 @@ class CuteChessModule(BaseChessTournamentModule):
     # Abstract methods implementation
     # ------------------------------
 
-    async def _build_internal(self) -> None:
+    async def _build_internal_chess_tournament(self) -> None:
         cwd = self._build_dir
         cpus = os.cpu_count()
 
@@ -56,8 +56,19 @@ class CuteChessModule(BaseChessTournamentModule):
         run_shell_command("cmake .", cwd)
         run_shell_command(f"make cli -j{cpus}", cwd)
 
-    async def _load_config_internal(self, config: dict[str, any]) -> None:
-        await self._prepare_config_for_engines(config)
+    async def _configure_build_chess_tournament(self, json_parsed: dict[str, any], prefix: str) -> None:
+        self._config_file_path = os.path.join(self._build_dir, CuteChessModule.CONFIG_FILE)
+        exec_path_name = get_config_prefixed_name(prefix, self._module_name, "exec_path")
+
+        if exec_path_name in json_parsed:
+            raise Exception(f"Exec path: {exec_path_name} is not allowed to be provided for CuteChessModule!")
+
+        exec_path = os.path.join(self._build_dir, CuteChessModule.EXEC_NAME)
+        json_parsed[exec_path_name] = exec_path
+
+
+    async def _load_config_internal(self, config: dict[str, any], prefix: str) -> None:
+        await self._prepare_config_for_engines(config, prefix)
         self._prepare_config_for_tournament()
 
     async def play_game(self, args: dict[str, str], enemy_engine: str, game_seed: int) -> str:
@@ -91,20 +102,9 @@ class CuteChessModule(BaseChessTournamentModule):
     # Private Methods
     # ------------------------------
 
-    async def _prepare_config_for_engine(self, config_out: list[dict[str, str]], startup_config: dict[str, str],
-                                         engine_name: str) -> None:
-        if engine_name not in EngineModuleBuilders:
-            raise Exception(f"Provided engine: {engine_name} is not supported!")
+    async def _prepare_config_for_engine(self, config_out: list[dict[str, str]], engine_name: str) -> None:
 
-        if engine_name in self._engines:
-            return
-
-        if "build_dir" not in startup_config:
-            startup_config["build_dir"] = self._build_dir
-
-        factory = EngineModuleBuilders[engine_name]
-        engine = factory(startup_config)
-        await engine.build_module()
+        engine = self._engines[engine_name]
         engine_config = await engine.get_config()
 
         filtered_config: dict[str, str] = {
@@ -117,21 +117,18 @@ class CuteChessModule(BaseChessTournamentModule):
             filtered_config["initStrings"] = engine_config["initStrings"]
 
         filtered_config["command"] = engine.get_exec_path()
-
         filtered_config["name"] = engine_name
 
-        self._engines[engine_name] = engine
         config_out.append(filtered_config)
 
-    async def _prepare_config_for_engines(self, config: dict[str, any]) -> None:
-        self._tested_engine = config["tested_engine"]
-        engine_startup_commands = config["engine_startup_commands"] if "engine_startup_commands" in config else {}
+    async def _prepare_config_for_engines(self, config: dict[str, any], prefix: str) -> None:
+        tested_engine_name = get_config_prefixed_name(prefix, self._module_name, "tested_engine")
 
+        self._tested_engine = config[tested_engine_name]
         engines_config: list[dict[str, str]] = []
-        for engine in config["engines"]:
+        for engine in self._engines.keys():
             await self._prepare_config_for_engine(
                 engines_config,
-                engine_startup_commands[engine] if engine in engine_startup_commands else {},
                 engine
             )
 
@@ -183,15 +180,28 @@ class CuteChessModule(BaseChessTournamentModule):
 # Builder Implementation
 # ------------------------------
 
-class CuteChessModuleBuilder(ModuleBuilder):
+class CuteChessModuleBuilder(BaseChessTournamentModuleBuilder):
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
-    def build(self, json_config: dict[str, str]) -> any:
-        pass
+    def __init__(self) -> None:
+        super().__init__([], CuteChessModule.TOURNAMENT_NAME)
 
-    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
-        pass
+    # ------------------------------
+    # Abstract methods implementation
+    # ------------------------------
 
-    def get_next_submodule_needed(self, json_config: dict[str, str]) -> ConfigSpecElement:
-        pass
+    def _get_config_spec_internal_chess_tournament(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
+
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
+        return CuteChessModule(
+            **self._build_submodules(json_config, name_prefix)
+        )
+
+    def _get_build_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
+
 
 append_tournament_builder(CuteChessModule.TOURNAMENT_NAME, CuteChessModuleBuilder)
