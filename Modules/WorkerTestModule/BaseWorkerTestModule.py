@@ -1,9 +1,10 @@
 from abc import abstractmethod, ABC
 
+from Modules.Module import Module
 from Modules.ModuleBuilder import ModuleBuilderFactory
 
 
-class BaseWorkerTestModule(ABC):
+class BaseWorkerTestModule(Module, ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -12,20 +13,12 @@ class BaseWorkerTestModule(ABC):
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, submodule_name: str) -> None:
+        super().__init__(submodule_name)
 
     # ------------------------------
     # Abstract methods
     # ------------------------------
-
-    @abstractmethod
-    async def load_module_config_from_mgr(self, arg_str: str) -> None:
-        pass
-
-    @abstractmethod
-    async def build_module(self) -> None:
-        pass
 
     @abstractmethod
     async def run_single_test(self, arg_str: str, seed: int) -> str:

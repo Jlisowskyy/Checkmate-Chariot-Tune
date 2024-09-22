@@ -1,10 +1,11 @@
 import json
 
-from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import TournamentFactoryMethods, BaseChessTournamentModule
+from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import BaseChessTournamentModule
+from Utils.Helpers import validate_dict_str, validate_string, validate_dict_str_str
 from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_builder
-from ..ManagerTestModule.BaseManagerChessModule import BaseManagerChessModule
-from ..ModuleBuilder import ModuleBuilder, T
-from ..ModuleHelpers import ConfigSpecElement
+from ..ModuleBuilder import ModuleBuilder
+from ..ModuleHelpers import ConfigSpecElement, build_submodule_spec_element, UiType
+from ..SubModuleMgr import SubModuleMgr
 
 
 # ------------------------------
@@ -16,6 +17,7 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     # Class fields
     # ------------------------------
 
+    MODULE_NAME = "ChessWorkerTestModule"
     _chess_tournament_module: BaseChessTournamentModule
 
     # ------------------------------
@@ -23,15 +25,18 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     # ------------------------------
 
     def __init__(self, chess_tournament_module: BaseChessTournamentModule) -> None:
-        super().__init__()
+        super().__init__(ChessWorkerTestModule.MODULE_NAME)
         self._chess_tournament_module = chess_tournament_module
 
     # ------------------------------
     # Worker methods
     # ------------------------------
 
-    async def load_module_config_from_mgr(self, arg_str: str) -> None:
-        await self._chess_tournament_module.load_config(arg_str)
+    async def configure_module(self, json_parsed: any, prefix: str) -> None:
+        await self._chess_tournament_module.load_config(json_parsed, prefix)
+
+    async def configure_build(self, json_parsed: any, prefix: str) -> None:
+        await self._chess_tournament_module.configure_build(json_parsed, prefix)
 
     async def build_module(self) -> None:
         await self._chess_tournament_module.build_module()
@@ -39,28 +44,19 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     async def run_single_test(self, arg_str: str, seed: int) -> str:
         parsed_json = json.loads(arg_str)
 
-        if not isinstance(parsed_json, dict):
-            raise Exception("Invalid json format")
+        validate_dict_str(parsed_json)
 
         if "opponent" not in parsed_json:
             raise Exception("Missing opponent in json")
 
+        validate_string(parsed_json["opponent"])
         opponent = parsed_json["opponent"]
-
-        if not isinstance(opponent, str):
-            raise Exception("Opponent must be a string")
 
         if "params" not in parsed_json:
             raise Exception("Missing params in json")
 
+        validate_dict_str_str(parsed_json["params"])
         params = parsed_json["params"]
-
-        if not isinstance(params, dict):
-            raise Exception("Params must be a dictionary")
-
-        if not all(isinstance(value, str) for value in params.values()) or not all(
-                isinstance(value, str) for value in params.keys()):
-            raise Exception("Params must be a dictionary with string or int values")
 
         result = await self._chess_tournament_module.play_game(params, opponent, seed)
         return result
@@ -74,13 +70,38 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
 # ------------------------------
 
 class ChessWorkerTestModuleBuilder(ModuleBuilder):
-    def _get_build_spec_internal(self) -> list[ConfigSpecElement]:
-        pass
+    # ------------------------------
+    # Class creation
+    # ------------------------------
 
-    def build(self, json_config: dict[str, str]) -> T:
-        pass
+    def __init__(self) -> None:
+        super().__init__(
+            [
+                build_submodule_spec_element(
+                    BaseChessTournamentModule.SUBMODULE_TYPE,
+                    "chess_tournament_module",
+                    "Chess tournament module used to run tests",
+                    UiType.String,
+                    SubModuleMgr().get_all_submodules_by_type(BaseChessTournamentModule.SUBMODULE_TYPE),
+                )
+            ],
+            ChessWorkerTestModule.MODULE_NAME
+        )
 
-    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
-        pass
+    # ------------------------------
+    # Abstract methods
+    # ------------------------------
 
-append_test_module_builder("BaseChessModule", lambda : ChessWorkerTestModuleBuilder())
+    def _get_config_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
+
+    def _get_build_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
+
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
+        return ChessWorkerTestModule(
+            **self._build_submodules(json_config, name_prefix)
+        )
+
+
+append_test_module_builder(ChessWorkerTestModule.MODULE_NAME, lambda: ChessWorkerTestModuleBuilder())

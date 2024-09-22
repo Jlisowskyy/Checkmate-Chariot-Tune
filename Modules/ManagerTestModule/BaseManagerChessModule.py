@@ -58,11 +58,11 @@ class BaseManagerChessModuleBuilder(ModuleBuilder):
         super().__init__(
             [
             build_submodule_spec_element(
-                BaseTrainingMethodModule.SUBMODULE_TYPE_NAME,
+                BaseTrainingMethodModule.SUBMODULE_TYPE,
                 "training_module",
                 "Chess training method used to find best parameters for algorithms",
                 UiType.String,
-                SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE_NAME),
+                SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE),
             )
             ],
             BaseManagerChessModule.MODULE_NAME
