@@ -35,13 +35,11 @@ class CuteChessModule(BaseChessTournamentModule):
     # Class creation
     # ------------------------------
 
-    def __init__(self, build_dir: str) -> None:
-        build_dir = str(os.path.join(build_dir, CuteChessModule.SUBDIR_NAME))
-        exec_path = os.path.join(build_dir, CuteChessModule.EXEC_NAME)
+    def __init__(self) -> None:
 
-        super().__init__(exec_path, build_dir, CuteChessModule.TOURNAMENT_NAME)
+        super().__init__(CuteChessModule.TOURNAMENT_NAME)
 
-        self._config_file_path = str(os.path.join(self._build_dir, CuteChessModule.CONFIG_FILE))
+        self._config_file_path = ""
         self._tested_engine = ""
         self._start_arguments = ""
         self._engines = {}

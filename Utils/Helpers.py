@@ -115,3 +115,10 @@ def validate_dict_str_list_str(obj: any) -> None:
 
     if not all(all(isinstance(y, str) for y in x) for x in obj.values()):
         raise ValueError(f"Object {obj} is not a dictionary with list of strings values")
+
+
+def validate_string_dict_string_string_dict(obj: any) -> None:
+    validate_dict_str(obj)
+
+    for value in obj.values():
+        validate_dict_str_str(value)

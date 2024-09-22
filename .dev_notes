@@ -12,4 +12,12 @@ DISTANT TODO:
 - refactor module builders to not create dicts for each submodule
 
 BUGS:
-there are races probably on thread starting functions starters should be locked
+- there are races probably on thread starting functions starters should be locked
+- name collisions in module builders
+
+build config default:
+- build dir
+- expected build path
+
+config:
+- process_memory_limit

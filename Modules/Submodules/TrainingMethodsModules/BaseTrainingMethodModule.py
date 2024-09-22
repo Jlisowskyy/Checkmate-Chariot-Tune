@@ -2,7 +2,6 @@ from abc import abstractmethod
 
 from ..SubModulesRegistry import append_submodule_builders
 from ...ModuleBuilder import ModuleBuilderFactory
-from ...ModuleHelpers import ConfigSpecElement, UiType, build_submodule_spec_element
 from ...NonBuildableModule import NonBuildableModule
 
 

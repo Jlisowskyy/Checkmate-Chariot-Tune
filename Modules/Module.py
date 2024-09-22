@@ -21,9 +21,9 @@ class Module(ABC):
         pass
 
     @abstractmethod
-    async def configure_module(self, json: str) -> None:
+    async def configure_module(self, json: any, prefix: str) -> None:
         pass
 
     @abstractmethod
-    async def configure_build(self, json: str) -> None:
+    async def configure_build(self, json: any, prefix: str) -> None:
         pass

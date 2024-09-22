@@ -16,7 +16,6 @@ class ModuleBuilder(ABC):
     _submodule_type: str
     _submodule_name: str
 
-
     # ------------------------------
     # Class creation
     # ------------------------------

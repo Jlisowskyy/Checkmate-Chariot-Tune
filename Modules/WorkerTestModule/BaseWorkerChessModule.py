@@ -63,6 +63,7 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
             raise Exception("Params must be a dictionary with string or int values")
 
         result = await self._chess_tournament_module.play_game(params, opponent, seed)
+        return result
 
     # ------------------------------
     # Helper methods

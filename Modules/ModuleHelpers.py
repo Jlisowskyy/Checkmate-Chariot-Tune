@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from enum import Enum
 
-from Utils.Helpers import validate_list_str, validate_string, validate_dict_str_str, validate_dict_str_int
+from Utils.Helpers import validate_list_str, validate_string, validate_dict_str_str, validate_dict_str_int, \
+    validate_string_dict_string_string_dict
 
 
 # ------------------------------
@@ -13,6 +14,7 @@ class UiType(Enum):
     String = str
     StringStringDict = dict[str, str]
     StringIntPairDict = dict[str, int]
+    StringDictStringStringDict = dict[str, dict[str, str]]
 
 
 UiTypeValidatorDict: dict[UiType, Callable[[any], None]] = {
@@ -20,6 +22,7 @@ UiTypeValidatorDict: dict[UiType, Callable[[any], None]] = {
     UiType.String: validate_string,
     UiType.StringStringDict: validate_dict_str_str,
     UiType.StringIntPairDict: validate_dict_str_int,
+    UiType.StringDictStringStringDict: validate_string_dict_string_string_dict
 }
 
 missing_validators = [ui_type for ui_type in UiType if ui_type not in UiTypeValidatorDict]
@@ -80,6 +83,7 @@ class ConfigSpecElement:
 
 
 def build_config_spec_element(
+        submodule_type: str,
         name: str,
         description: str,
         ui_type: UiType,
@@ -89,7 +93,7 @@ def build_config_spec_element(
     if default_value is not None and not isinstance(default_value, ui_type.value):
         raise ValueError(f"Default value type must be {ui_type.value}, got {type(default_value)}")
 
-    return ConfigSpecElement(name, description, ui_type, default_value, is_optional)
+    return ConfigSpecElement(get_typed_name(submodule_type, name), description, ui_type, default_value, is_optional)
 
 
 def build_submodule_spec_element(
@@ -104,13 +108,16 @@ def build_submodule_spec_element(
 
     validate_list_str(default_value)
     return ConfigSpecElement(
-        f"{submodule_type}.{name}",
+        get_typed_name(submodule_type, name),
         description,
         ui_type,
         default_value,
         False
     )
 
+
+def get_typed_name(submodule_type: str, name: str) -> str:
+    return f"{submodule_type}.{name}"
 
 def extract_submodule_type(submodule_spec_name: str) -> str:
     return submodule_spec_name.split(".")[0]
@@ -135,3 +142,6 @@ def validate_submodule_spec_args(obj: list[str], ui_type: UiType) -> None:
         validate_submodule_spec_string_list(obj)
     else:
         raise ValueError(f"Invalid UiType {ui_type} for submodule spec args")
+
+def get_config_prefixed_name(prefix: str, name: str) -> str:
+    return f"{prefix}.{name}"
