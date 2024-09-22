@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from Modules.Module import Module
 from Modules.ModuleHelpers import get_config_prefixed_name
-from Utils.Helpers import validate_dict_str, validate_string
+from Utils.Helpers import validate_dict_str, validate_string, validate_dir
 from Utils.Logger import Logger, LogLevel
 
 
@@ -65,6 +65,7 @@ class BuildableModule(ABC, Module):
                 raise Exception("No build_dir found in config")
 
             validate_string(json["build_dir"])
+            validate_dir(json["build_dir"])
 
             self._build_dir = json["build_dir"]
 

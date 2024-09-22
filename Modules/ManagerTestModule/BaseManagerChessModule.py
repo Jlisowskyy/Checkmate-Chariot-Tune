@@ -22,7 +22,7 @@ class BaseManagerChessModule(BaseManagerTestModule):
     # ------------------------------
 
     def __init__(self, training_module: BaseTrainingMethodModule) -> None:
-        super().__init__(BaseManagerChessModule.MODULE_NAME)~
+        super().__init__(BaseManagerChessModule.MODULE_NAME)
         self._chess_training_module = training_module
 
     # ------------------------------
@@ -65,6 +65,7 @@ class BaseManagerChessModuleBuilder(ModuleBuilder):
                 SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE_NAME),
             )
             ],
+            BaseManagerChessModule.MODULE_NAME
         )
 
     # ------------------------------
