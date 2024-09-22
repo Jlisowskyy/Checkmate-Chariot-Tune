@@ -1,6 +1,7 @@
 from .BaseTrainingMethodModule import BaseTrainingMethodModule, append_test_module_builder
 from ...ModuleBuilder import ModuleBuilder
-from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, build_submodule_spec_element
+from ...ModuleHelpers import ConfigSpecElement
+from ...NonBuildableModule import NonBuildableModule
 
 
 # ------------------------------
@@ -8,20 +9,19 @@ from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiTyp
 # ------------------------------
 
 
-class SimpleTrainingModule(BaseTrainingMethodModule):
+class SimpleTrainingModule(BaseTrainingMethodModule, NonBuildableModule):
     # ------------------------------
     # Class fields
     # ------------------------------
 
     MODULE_NAME = "SimpleTrainingModule"
 
-
     # ------------------------------
     # Class creation
     # ------------------------------
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(SimpleTrainingModule.MODULE_NAME)
 
     # ------------------------------
     # Basic Methods
@@ -54,44 +54,28 @@ class SimpleTrainingModule(BaseTrainingMethodModule):
 # Builder Implementation
 # ------------------------------
 
-def build_config_spec_configured(
-        name: str,
-        description: str,
-        ui_type: UiType,
-        default_value: ConfigSpecElement.default_value_type,
-        is_optional: bool
-) -> ConfigSpecElement:
-    return build_config_spec_element(
-        BaseTrainingMethodModule.SUBMODULE_TYPE_NAME,
-        SimpleTrainingModule.MODULE_NAME,
-        name, description,
-        ui_type, default_value,
-        is_optional
-    )
-
-class SimpleTrainingModuleBuilder(ModuleBuilder):
+class SimpleTrainingMethodBuilder(ModuleBuilder):
     # ------------------------------
     # Class creation
     # ------------------------------
 
     def __init__(self) -> None:
-        super().__init__([])
+        super().__init__([], SimpleTrainingModule.MODULE_NAME)
 
-    # --------------------------------
-    # Abstract Methods Implementation
-    # --------------------------------
+    # ------------------------------
+    # Abstract methods implementation
+    # ------------------------------
 
-    def _get_build_spec_internal(self) -> list[ConfigSpecElement]:
-        return []
-
-    def build(self, json_config: dict[str, list[str]]) -> any:
-        return SimpleTrainingModule()
-
-    def _get_config_spec_internal(self) -> list[ConfigSpecElement]:
+    def _get_config_spec_internal_chess_tournament(self, prefix: str) -> list[ConfigSpecElement]:
         return [
-            build_config_spec_configured("Parameters", "Parameters for the training", UiType.StringStringDict, None,
-                                         False),
+
         ]
 
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
+        return SimpleTrainingModule()
 
-append_test_module_builder(SimpleTrainingModule.MODULE_NAME, lambda: SimpleTrainingModuleBuilder())
+    def _get_build_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
+
+
+append_test_module_builder(SimpleTrainingModule.MODULE_NAME, lambda: SimpleTrainingMethodBuilder())

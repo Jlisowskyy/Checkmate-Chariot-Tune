@@ -1,23 +1,23 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 
 from ..SubModulesRegistry import append_submodule_builders
+from ...Module import Module
 from ...ModuleBuilder import ModuleBuilderFactory
-from ...NonBuildableModule import NonBuildableModule
 
 
-class BaseTrainingMethodModule(NonBuildableModule):
+class BaseTrainingMethodModule(Module, ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
 
-    SUBMODULE_TYPE_NAME = "TrainingMethod"
+    SUBMODULE_TYPE = "TrainingMethod"
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, submodule_name: str) -> None:
+        super().__init__(submodule_name)
 
     # ------------------------------
     # Basic Methods
@@ -49,7 +49,7 @@ class BaseTrainingMethodModule(NonBuildableModule):
 
 
 TrainingMethodModuleBuilders: dict[str, ModuleBuilderFactory] = {}
-append_submodule_builders(BaseTrainingMethodModule.SUBMODULE_TYPE_NAME, TrainingMethodModuleBuilders)
+append_submodule_builders(BaseTrainingMethodModule.SUBMODULE_TYPE, TrainingMethodModuleBuilders)
 
 def append_test_module_builder(module: str, builder: ModuleBuilderFactory) -> None:
     if module not in TrainingMethodModuleBuilders:

@@ -4,6 +4,7 @@ from Utils.Helpers import run_shell_command, validate_string
 from .BaseEngineModule import BaseEngineModule, append_engine_builder
 from ...ModuleBuilder import ModuleBuilder
 from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name
+from ...NonConfigurableModule import NonConfigurableModule
 
 
 # ------------------------------
@@ -11,7 +12,7 @@ from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiTyp
 # ------------------------------
 
 
-class CheckmateChariotModule(BaseEngineModule):
+class CheckmateChariotModule(BaseEngineModule, NonConfigurableModule):
     # ------------------------------
     # Class fields
     # ------------------------------
