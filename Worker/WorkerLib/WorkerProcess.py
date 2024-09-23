@@ -82,8 +82,8 @@ class WorkerProcess:
         self._stop_sem.acquire()
 
     def stop_processing(self) -> None:
-        self._stop_sem.release() \
- \
+        self._stop_sem.release()
+
     def get_stop_type(self) -> StopType:
         return self._stop_type
 

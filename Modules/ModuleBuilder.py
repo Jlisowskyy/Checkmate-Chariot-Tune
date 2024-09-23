@@ -92,25 +92,25 @@ class ModuleBuilder(ABC):
         from Modules.SubModuleMgr import SubModuleMgr
 
         for submodule in self._submodules:
-            submodule_full_path = f"{name_prefix}.{submodule.get_name()}"
+            submodule_full_path = f"{name_prefix}.{submodule.name}"
 
             if submodule_full_path in json_config:
                 module_names = json_config[submodule_full_path]
 
-                validate_submodule_spec_args(module_names, submodule.get_ui_type())
+                validate_submodule_spec_args(module_names, submodule.ui_type)
 
-                submodule_type = extract_submodule_type(submodule.get_name())
+                submodule_type = extract_submodule_type(submodule.name)
                 for module_name in module_names:
                     builder = SubModuleMgr().get_submodule(submodule_type, module_name)
 
-                    var_name = extract_submodule_variable_name(submodule.get_name())
+                    var_name = extract_submodule_variable_name(submodule.name)
                     path_prefix = f"{name_prefix}.{var_name}"
                     result = on_hit(path_prefix, builder, submodule)
 
                     if result is not None:
                         return result
             else:
-                result = on_miss(submodule.get_name(), submodule)
+                result = on_miss(submodule.name, submodule)
 
                 if result is not None:
                     return result
@@ -129,14 +129,14 @@ class ModuleBuilder(ABC):
             builder: 'ModuleBuilder',
             config_spec: ConfigSpecElement
     ) -> None:
-        if config_spec.get_ui_type() == UiType.String:
+        if config_spec.ui_type == UiType.String:
             modules.update(
-                {extract_submodule_variable_name(config_spec.get_name()): builder.build(json_config, name_prefix)})
-        elif config_spec.get_ui_type() == UiType.StringList:
-            if extract_submodule_variable_name(config_spec.get_name()) not in modules:
-                modules[extract_submodule_variable_name(config_spec.get_name())] = []
+                {extract_submodule_variable_name(config_spec.name): builder.build(json_config, name_prefix)})
+        elif config_spec.ui_type == UiType.StringList:
+            if extract_submodule_variable_name(config_spec.name) not in modules:
+                modules[extract_submodule_variable_name(config_spec.name)] = []
 
-            modules[extract_submodule_variable_name(config_spec.get_name())].append(
+            modules[extract_submodule_variable_name(config_spec.name)].append(
                 builder.build(json_config, name_prefix))
 
     def _build_submodules(self, json_config: dict[str, list[str]], name_prefix: str = "") -> dict[str, any]:

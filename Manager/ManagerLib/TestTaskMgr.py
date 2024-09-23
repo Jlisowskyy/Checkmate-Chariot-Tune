@@ -4,7 +4,9 @@ from threading import Lock
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
-from Utils.Helpers import validate_dir, validate_dict_str_list_str
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.ModuleMgr import ModuleMgr
+from Utils.Helpers import validate_dir, validate_dict_str_list_str, validate_dict_str
 from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
 
@@ -33,9 +35,13 @@ class TestTask(ObjectModel):
     _config_json: str
     _build_config_json: str
 
-    _submodules_config_json: dict[str, list[str]]
+    _worker_init: dict[str, list[str]]
+    _manager_init: dict[str, list[str]]
 
     _task_module: BaseManagerTestModule | None
+
+    _worker_module_builder: ModuleBuilder
+    _manager_module_builder: ModuleBuilder
 
     # ------------------------------
     # Class creation
@@ -49,7 +55,7 @@ class TestTask(ObjectModel):
         self._task_module = None
 
         validate_dir(build_dir)
-        ManagerComponents().get_module_mgr().validate_module(module_name)
+        ModuleMgr().validate_module(module_name)
 
         with TestTask._obj_counter_lock:
             self._task_id = TestTask._obj_counter
@@ -61,21 +67,32 @@ class TestTask(ObjectModel):
     # State changing methods
     # ------------------------------
 
-    def try_to_init(self, submodules_json: str) -> list:
-        submodules_parsed: dict[str, list[str]] = json.loads(submodules_json)
-        validate_dict_str_list_str(submodules_parsed)
+    def try_to_init(self, submodules_json: str) -> str:
+        submodules_parsed: dict[str, dict[str, list[str]]] = json.loads(submodules_json)
+        validate_dict_str(submodules_parsed)
+
+        if "worker_init" not in submodules_parsed or "manager_init" not in submodules_parsed:
+            raise ValueError("\"worker_init\" and \"manager_init\" keys must be present in submodules_json")
+
+        validate_dict_str_list_str(submodules_parsed["worker_init"])
+        validate_dict_str_list_str(submodules_parsed["manager_init"])
+
+        worker_init = submodules_parsed["worker_init"]
+        manager_init = submodules_parsed["manager_init"]
 
         with self.perform_operation():
             with self.get_lock().read():
                 if self._state != TaskState.UNINITIATED:
                     raise ValueError(f"Task {self._task_id} already initiated")
 
-            rv = self._get_sub_modules_to_pick(submodules_parsed)
+            lacking_manager_module = self._manager_module_builder.get_next_submodule_needed(manager_init)
+            lacking_worker_module = self._worker_module_builder.get_next_submodule_needed(worker_init)
 
             with self.get_lock().write():
-                self._submodules_config_json = submodules_parsed
+                self._manager_init = manager_init
+                self._worker_init = worker_init
 
-            if len(rv) == 0:
+            if lacking_manager_module is not None and lacking_worker_module is not None:
                 self._try_to_init_modules()
                 self._change_state(TaskState.INITIATED)
 

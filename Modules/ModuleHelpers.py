@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from enum import Enum
 
+from pydantic import BaseModel
+
 from Utils.Helpers import validate_list_str, validate_string, validate_dict_str_str, validate_dict_str_int, \
     validate_string_dict_string_string_dict
 
@@ -34,53 +36,18 @@ if missing_validators:
 # Config Spec Element
 # ------------------------------
 
-class ConfigSpecElement:
+class ConfigSpecElement(BaseModel):
     default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
 
     # ------------------------------
     # Class fields
     # ------------------------------
 
-    _name: str
-    _ui_type: UiType
-    _description: str
-    _default_value: default_value_type
-    _is_optional: bool
-
-    # ------------------------------
-    # Class creation
-    # ------------------------------
-
-    def __init__(self, name: str, description: str, ui_type: UiType, default_value: default_value_type,
-                 is_optional: bool) -> None:
-        self._name = name
-        self._description = description
-        self._ui_type = ui_type
-        self._default_value = default_value
-        self._is_optional = is_optional
-
-    # ------------------------------
-    # Class interaction
-    # ------------------------------
-
-    def get_name(self) -> str:
-        return self._name
-
-    def get_description(self) -> str:
-        return self._description
-
-    def get_ui_type(self) -> UiType:
-        return self._ui_type
-
-    def get_default_value(self) -> default_value_type:
-        return self._default_value
-
-    def is_optional(self) -> bool:
-        return self._is_optional
-
-    def __str__(self) -> str:
-        return f"ConfigSpecElement({self._name}, {self._description}, {self._ui_type})"
-
+    name: str
+    ui_type: UiType
+    description: str
+    default_value: default_value_type
+    is_optional: bool
 
 def build_config_spec_element(
         submodule_name: str,
@@ -93,8 +60,11 @@ def build_config_spec_element(
     if default_value is not None and not isinstance(default_value, ui_type.value):
         raise ValueError(f"Default value type must be {ui_type.value}, got {type(default_value)}")
 
-    return ConfigSpecElement(get_typed_name(submodule_name, variable_name), description, ui_type, default_value, is_optional)
-
+    return ConfigSpecElement(name=get_typed_name(submodule_name, variable_name),
+                             description=description,
+                             ui_type=ui_type,
+                             default_value=default_value,
+                             is_optional=is_optional)
 
 def build_submodule_spec_element(
         submodule_type: str,
@@ -108,11 +78,11 @@ def build_submodule_spec_element(
 
     validate_list_str(default_value)
     return ConfigSpecElement(
-        get_typed_name(submodule_type, variable_name),
-        description,
-        ui_type,
-        default_value,
-        False
+        name=get_typed_name(submodule_type, variable_name),
+        description=description,
+        ui_type=ui_type,
+        default_value=default_value,
+        is_optional=False
     )
 
 
