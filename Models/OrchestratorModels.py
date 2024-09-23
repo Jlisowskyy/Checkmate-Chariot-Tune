@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 from .GlobalModels import *
 
@@ -12,6 +12,15 @@ class UiType(Enum):
 
 
 default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
+
+
+class TaskState(IntEnum):
+    UNINITIATED = 0
+    INITIATED = 1
+    BUILT = 2
+    READY = 3
+    SCHEDULED = 4
+
 
 
 # NEW MODELS
@@ -54,8 +63,30 @@ class TaskOperationRequest(BaseModel):
     task_id: int
 
 
+class TestTaskMinimalQuery(BaseModel):
+    task_id: int
+    name: str
+    description: str
+    module_name: str
+    task_state: TaskState
+
+
+class TaskMinimalQueryAllResponse(BaseModel):
+    queries: list[TestTaskMinimalQuery]
+
+class TaskConfigSpecResponse(BaseModel):
+    result: str
+    worker_config_spec: list[ConfigSpecElement]
+    manager_config_spec: list[ConfigSpecElement]
+
 class TestTaskFullQuery(BaseModel):
-    pass
+    minimal_query: TestTaskMinimalQuery
+    worker_init_config: dict[str, list[str]] | None
+    manager_init_config: dict[str, list[str]] | None
+    worker_build_config: dict[str, any] | None
+    manager_build_config: dict[str, any] | None
+    worker_config: dict[str, any] | None
+    manager_config: dict[str, any] | None
 
 
 # OLD MODELS

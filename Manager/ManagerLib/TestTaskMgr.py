@@ -1,12 +1,12 @@
 import json
 from collections.abc import Callable
-from enum import IntEnum
 from threading import Lock
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.GlobalModels import CommandResult
 from Models.OrchestratorModels import TaskCreateRequest, TaskOperationRequest, TaskOpRequestWithConfig, \
-    ConfigSpecElement, TaskInitResponse
+    ConfigSpecElement, TaskInitResponse, TaskState, TaskMinimalQueryAllResponse, TestTaskMinimalQuery, \
+    TaskConfigSpecResponse, TestTaskFullQuery
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
 from Modules.ModuleBuilder import ModuleBuilder
 from Modules.ModuleMgr import ModuleMgr
@@ -15,14 +15,6 @@ from Utils.Helpers import validate_dict_str_list_str, validate_dict_str
 from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
 from Utils.SettingsLoader import SettingsLoader
-
-
-class TaskState(IntEnum):
-    UNINITIATED = 0
-    INITIATED = 1
-    BUILT = 2
-    READY = 3
-    SCHEDULED = 4
 
 
 class TestTask(ObjectModel):
@@ -172,6 +164,21 @@ class TestTask(ObjectModel):
             ManagerComponents().get_test_job_mgr().stop_task_jobs(self._task_id, self.get_gen_num_locked())
             self._change_state(TaskState.READY)
 
+    def get_full_task_query(self) -> TestTaskFullQuery:
+        with self.perform_operation():
+            with self.get_lock().read():
+                return TestTaskFullQuery(minimal_query=TestTaskMinimalQuery(task_id=self._task_id,
+                                                                            name=self._task_name,
+                                                                            description=self._task_description,
+                                                                            module_name=self._module_name,
+                                                                            task_state=self._state),
+                                         worker_init_config=self._worker_init,
+                                         manager_init_config=self._manager_init,
+                                         worker_build_config=self._worker_build_config,
+                                         manager_build_config=self._manager_build_config,
+                                         worker_config=self._worker_config,
+                                         manager_config=self._manager_config)
+
     # ------------------------------
     # getters and setters
     # ------------------------------
@@ -216,6 +223,19 @@ class TestTask(ObjectModel):
     def get_task_description(self) -> str:
         return self._task_description
 
+    def get_worker_config_spec_unguarded(self) -> list[ConfigSpecElement]:
+        return self._worker_module_builder.get_config_spec(self._worker_init)
+
+    def get_manager_config_spec_unguarded(self) -> list[ConfigSpecElement]:
+        return self._manager_module_builder.get_config_spec(self._manager_init)
+
+    def get_worker_build_spec_unguarded(self) -> list[ConfigSpecElement]:
+        return self._worker_module_builder.get_build_spec(self._worker_init)
+
+    def get_manager_build_spec_unguarded(self) -> list[ConfigSpecElement]:
+        return self._manager_module_builder.get_build_spec(self._manager_init)
+
+
     # ------------------------------
     # Other methods
     # ------------------------------
@@ -230,6 +250,10 @@ class TestTask(ObjectModel):
     # ------------------------------
     # Private methods
     # ------------------------------
+
+    def _validate_init_state_unlocked(self) -> None:
+        if self._state == TaskState.UNINITIATED:
+            raise ValueError(f"Task {self._task_id} not initiated")
 
     def _try_to_init_modules(self) -> None:
         try:
@@ -375,6 +399,10 @@ class TestTaskMgr(ObjectModel):
         task = self._validate_and_get_task(task_id)
         task.try_to_schedule_task()
 
+    def get_task_query(self, task_id: int) -> TestTaskFullQuery:
+        task = self._validate_and_get_task(task_id)
+        return task.get_full_task_query()
+
     # ------------------------------
     # API methods
     # ------------------------------
@@ -413,6 +441,49 @@ class TestTaskMgr(ObjectModel):
         except Exception as e:
             return TaskInitResponse(worker_config_spec=None, manager_config_spec=None,
                                     result=f"Error while initializing task: {e}")
+
+    def api_minimal_query_all_tasks(self) -> TaskMinimalQueryAllResponse:
+        with self.get_lock().read():
+            queries = [TestTaskMinimalQuery(task_id=task_id,
+                                            name=task.get_task_name(),
+                                            description=task.get_task_description(),
+                                            module_name=task.get_module_name(),
+                                            task_state=task.get_task_state())
+                       for task_id, task in self._task_container.items()]
+
+        return TaskMinimalQueryAllResponse(queries=queries)
+
+    def api_get_task_config_spec(self, op_request: TaskOperationRequest) -> TaskConfigSpecResponse:
+        task = self._validate_and_get_task(op_request.task_id)
+
+        if task.get_task_state() == TaskState.UNINITIATED:
+            return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
+                                          result="Task not initiated")
+
+        with task.get_lock().read():
+            worker_config_spec = task.get_worker_config_spec_unguarded()
+            manager_config_spec = task.get_manager_config_spec_unguarded()
+
+        return TaskConfigSpecResponse(worker_config_spec=worker_config_spec, manager_config_spec=manager_config_spec,
+                                      result="")
+
+    def api_get_task_build_spec(self, op_request: TaskOperationRequest) -> TaskConfigSpecResponse:
+        task = self._validate_and_get_task(op_request.task_id)
+
+        if task.get_task_state() == TaskState.UNINITIATED:
+            return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
+                                          result="Task not initiated")
+
+        with task.get_lock().read():
+            worker_build_spec = task.get_worker_build_spec_unguarded()
+            manager_build_spec = task.get_manager_build_spec_unguarded()
+
+        return TaskConfigSpecResponse(worker_config_spec=worker_build_spec, manager_config_spec=manager_build_spec,
+                                      result="")
+
+    def api_get_task_query(self, op_request: TaskOperationRequest) -> TestTaskFullQuery:
+        task = self._validate_and_get_task(op_request.task_id)
+        return task.get_full_task_query()
 
     # ------------------------------
     # Private methods
