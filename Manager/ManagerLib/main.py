@@ -1,7 +1,7 @@
 import os
 
 from .ManagerComponents import ManagerComponents
-from .ManagerSettings import ManagerSettings, update_logger_freq
+from .ManagerSettings import ManagerSettings, update_logger_freq, update_build_dir
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Utils.Logger import Logger, LogLevel
 from ...Utils.SettingsLoader import SettingsLoader
@@ -13,6 +13,10 @@ def startup():
     # load settings
     settings = SettingsLoader(ManagerSettings, SETTINGS_PATH).get_settings()
     SettingsLoader().add_event(update_logger_freq)
+    SettingsLoader().add_event(update_build_dir)
+
+    # ensure build dir exists
+    update_build_dir(settings)
 
     # init logger
     Logger(settings.logger_path, settings.log_std_out, LogLevel(settings.log_level))

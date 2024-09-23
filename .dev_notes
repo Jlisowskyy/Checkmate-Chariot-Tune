@@ -14,7 +14,7 @@ DISTANT TODO:
 BUGS:
 - there are races probably on thread starting functions starters should be locked
 - fix json parsing in modules
--
+- build dir collision
 
 build config default:
 - build dir

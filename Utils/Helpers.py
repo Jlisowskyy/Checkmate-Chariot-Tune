@@ -122,3 +122,10 @@ def validate_string_dict_string_string_dict(obj: any) -> None:
 
     for value in obj.values():
         validate_dict_str_str(value)
+
+def ensure_path_exists(path: str) -> None:
+    if not os.path.exists(path):
+        os.makedirs(path)
+        Logger().log_info(f"Created directory: {path}", LogLevel.LOW_FREQ)
+    elif not os.path.isdir(path):
+        raise ValueError(f"Path {path} exists but is not a directory")

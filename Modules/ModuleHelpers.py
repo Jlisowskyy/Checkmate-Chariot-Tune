@@ -36,9 +36,10 @@ if missing_validators:
 # Config Spec Element
 # ------------------------------
 
-class ConfigSpecElement(BaseModel):
-    default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
+default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
 
+
+class ConfigSpecElement(BaseModel):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -54,7 +55,7 @@ def build_config_spec_element(
         variable_name: str,
         description: str,
         ui_type: UiType,
-        default_value: ConfigSpecElement.default_value_type,
+        default_value: default_value_type,
         is_optional: bool
 ) -> ConfigSpecElement:
     if default_value is not None and not isinstance(default_value, ui_type.value):
