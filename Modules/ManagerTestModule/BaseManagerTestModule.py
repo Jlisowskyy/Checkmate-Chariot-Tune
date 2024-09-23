@@ -4,7 +4,7 @@ from Modules.Module import Module
 from Modules.ModuleBuilder import ModuleBuilderFactory
 
 
-class BaseManagerTestModule(ABC, Module):
+class BaseManagerTestModule(Module, ABC):
     # ------------------------------
     # Class fields
     # ------------------------------

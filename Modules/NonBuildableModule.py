@@ -3,7 +3,7 @@ from abc import ABC
 from Modules.Module import Module
 
 
-class NonBuildableModule(ABC, Module):
+class NonBuildableModule(Module, ABC):
     # ------------------------------
     # Class creation
     # ------------------------------

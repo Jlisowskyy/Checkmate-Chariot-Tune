@@ -3,7 +3,6 @@ from collections.abc import Callable
 
 from Modules.ModuleHelpers import ConfigSpecElement, extract_submodule_type, validate_submodule_spec_args, \
     extract_submodule_variable_name, UiType
-from Modules.SubModuleMgr import SubModuleMgr
 
 
 # Note: for submodule config name should be same as constructor parameter name
@@ -90,6 +89,8 @@ class ModuleBuilder(ABC):
                          on_hit: Callable[[str, 'ModuleBuilder', ConfigSpecElement], any],
                          on_miss: Callable[[str, ConfigSpecElement], any]
                          ) -> any:
+        from Modules.SubModuleMgr import SubModuleMgr
+
         for submodule in self._submodules:
             submodule_full_path = f"{name_prefix}.{submodule.get_name()}"
 

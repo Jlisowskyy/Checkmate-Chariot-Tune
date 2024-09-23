@@ -46,7 +46,7 @@ class SimpleTrainingModule(BaseTrainingMethodModule, NonBuildableModule):
     async def harden_model(self) -> None:
         return
 
-    async def configure_module(self, json: str) -> None:
+    async def configure_module(self, json_parsed: str) -> None:
         return
 
 

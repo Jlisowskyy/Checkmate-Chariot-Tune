@@ -17,7 +17,7 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     # Class fields
     # ------------------------------
 
-    MODULE_NAME = "ChessWorkerTestModule"
+    MODULE_NAME = "BaseChessModule"
     _chess_tournament_module: BaseChessTournamentModule
 
     # ------------------------------
@@ -33,7 +33,7 @@ class ChessWorkerTestModule(BaseWorkerTestModule):
     # ------------------------------
 
     async def configure_module(self, json_parsed: any, prefix: str) -> None:
-        await self._chess_tournament_module.load_config(json_parsed, prefix)
+        await self._chess_tournament_module.configure_module(json_parsed, prefix)
 
     async def configure_build(self, json_parsed: any, prefix: str) -> None:
         await self._chess_tournament_module.configure_build(json_parsed, prefix)

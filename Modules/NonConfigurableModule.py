@@ -3,7 +3,7 @@ from abc import ABC
 from Modules.Module import Module
 
 
-class NonConfigurableModule(ABC, Module):
+class NonConfigurableModule(Module, ABC):
     # ------------------------------
     # Class creation
     # ------------------------------
@@ -15,5 +15,5 @@ class NonConfigurableModule(ABC, Module):
     # Base methods
     # ------------------------------
 
-    async def configure_module(self, json: str) -> None:
+    async def configure_module(self, json_parsed: str) -> None:
         return

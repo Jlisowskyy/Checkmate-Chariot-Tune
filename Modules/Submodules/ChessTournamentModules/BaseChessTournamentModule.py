@@ -7,7 +7,6 @@ from ..SubModulesRegistry import append_submodule_builders
 from ...ModuleBuilder import ModuleBuilderFactory, ModuleBuilder
 from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name, \
     build_submodule_spec_element
-from ...SubModuleMgr import SubModuleMgr
 
 
 # ------------------------------
@@ -56,7 +55,7 @@ class BaseChessTournamentModule(BuildableModule, ABC):
     # ------------------------------
 
     async def configure_module(self, json_parsed: any, prefix: str) -> None:
-        Logger().log_info(f"Loading config for tournament: {self._obj_name}", LogLevel.MEDIUM_FREQ)
+        Logger().log_info(f"Loading config for tournament: {self._module_name}", LogLevel.MEDIUM_FREQ)
 
         try:
             config_parsed = self._validate_and_parse_config_json(json_parsed, prefix)
@@ -64,10 +63,10 @@ class BaseChessTournamentModule(BuildableModule, ABC):
 
             await self._load_config_internal(config_parsed, prefix)
         except Exception as e:
-            Logger().log_info(f"Failed to get config for {self._obj_name} by error: {e}", LogLevel.MEDIUM_FREQ)
+            Logger().log_info(f"Failed to get config for {self._module_name} by error: {e}", LogLevel.MEDIUM_FREQ)
             raise e
 
-        Logger().log_info(f"Config correctly loaded for tournament: {self._obj_name}", LogLevel.MEDIUM_FREQ)
+        Logger().log_info(f"Config correctly loaded for tournament: {self._module_name}", LogLevel.MEDIUM_FREQ)
 
     async def _build_internal(self) -> None:
         await self._build_internal_chess_tournament()
@@ -188,14 +187,16 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
     # ------------------------------
 
     def __init__(self, submodules: list[ConfigSpecElement], submodule_name: str) -> None:
+        from ...SubModuleMgr import SubModuleMgr
+
         super().__init__(
             submodules + [
                 build_submodule_spec_element(
-                    BaseEngineModule.SUBMODULE_TYPE_NAME,
+                    BaseEngineModule.SUBMODULE_TYPE,
                     "tested_engines",
                     "List of engines participating in testing",
                     UiType.StringList,
-                    SubModuleMgr().get_all_submodules_by_type(BaseEngineModule.SUBMODULE_TYPE_NAME)
+                    SubModuleMgr().get_all_submodules_by_type(BaseEngineModule.SUBMODULE_TYPE)
                 )
             ],
             submodule_name
@@ -206,6 +207,8 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
     # ------------------------------
 
     def _get_config_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        from ...SubModuleMgr import SubModuleMgr
+
         config_spec: list[ConfigSpecElement] = [
             build_config_spec_element(
                 f"{prefix}.{self._submodule_name}",

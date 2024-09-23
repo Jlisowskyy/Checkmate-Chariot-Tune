@@ -31,7 +31,7 @@ class Module(ABC):
         pass
 
     @abstractmethod
-    async def configure_module(self, json: any, prefix: str) -> None:
+    async def configure_module(self, json_parsed: any, prefix: str) -> None:
         pass
 
     @abstractmethod

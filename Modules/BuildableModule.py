@@ -7,7 +7,7 @@ from Utils.Helpers import validate_dict_str, validate_string, validate_dir
 from Utils.Logger import Logger, LogLevel
 
 
-class BuildableModule(ABC, Module):
+class BuildableModule(Module, ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
