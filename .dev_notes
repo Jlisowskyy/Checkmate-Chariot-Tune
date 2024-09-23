@@ -10,6 +10,8 @@ JOBS IMPLEMENT:
 DISTANT TODO:
 - add some restore mechanism on fails
 - refactor module builders to not create dicts for each submodule
+- individual task hardening
+- priority queue in tasks
 
 BUGS:
 - there are races probably on thread starting functions starters should be locked

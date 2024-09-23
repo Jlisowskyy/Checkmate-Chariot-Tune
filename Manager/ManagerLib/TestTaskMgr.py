@@ -1,8 +1,12 @@
 import json
+from collections.abc import Callable
 from enum import IntEnum
 from threading import Lock
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
+from Models.GlobalModels import CommandResult
+from Models.OrchestratorModels import TaskCreateRequest, TaskOperationRequest, TaskOpRequestWithConfig, \
+    ConfigSpecElement, TaskInitResponse
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
 from Modules.ModuleBuilder import ModuleBuilder
 from Modules.ModuleMgr import ModuleMgr
@@ -48,11 +52,14 @@ class TestTask(ObjectModel):
     _worker_module_builder: ModuleBuilder
     _manager_module_builder: ModuleBuilder
 
+    _task_name: str
+    _task_description: str
+
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self, module_name: str) -> None:
+    def __init__(self, module_name: str, task_name: str, task_description: str) -> None:
         super().__init__()
         self._module_name = module_name
         self._state = TaskState.UNINITIATED
@@ -74,6 +81,9 @@ class TestTask(ObjectModel):
         self._worker_module_builder = ModuleMgr().get_module_worker_part(module_name)
         self._manager_module_builder = ModuleMgr().get_module_manager_part(module_name)
 
+        self._task_name = task_name
+        self._task_description = task_description
+
         with TestTask._obj_counter_lock:
             self._task_id = TestTask._obj_counter
             TestTask._obj_counter += 1
@@ -84,7 +94,7 @@ class TestTask(ObjectModel):
     # State changing methods
     # ------------------------------
 
-    def try_to_init(self, submodules_json: str) -> str:
+    def try_to_init(self, submodules_json: str) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
         submodules_parsed: dict[str, dict[str, list[str]]] = json.loads(submodules_json)
         validate_dict_str(submodules_parsed)
 
@@ -109,21 +119,11 @@ class TestTask(ObjectModel):
                 self._manager_init = manager_init
                 self._worker_init = worker_init
 
-            if lacking_manager_module is not None and lacking_worker_module is not None:
+            if lacking_manager_module is None and lacking_worker_module is None:
                 self._try_to_init_modules()
                 self._change_state(TaskState.INITIATED)
 
-        rv = {}
-        if lacking_manager_module is not None:
-            rv["manager_init"] = lacking_manager_module.model_dump()
-
-        if lacking_worker_module is not None:
-            rv["worker_init"] = lacking_worker_module.model_dump()
-
-        dumped_rv = json.dumps(rv)
-
-        Logger().log_info(f"Task request to init modules with payload: {dumped_rv}", LogLevel.MEDIUM_FREQ)
-        return dumped_rv
+        return [lacking_worker_module, lacking_manager_module]
 
     def try_to_build(self, config_json: str) -> None:
         with self.perform_operation():
@@ -209,6 +209,12 @@ class TestTask(ObjectModel):
     def get_manager_init(self) -> dict[str, list[str]]:
         with self.get_lock().read():
             return self._manager_init
+
+    def get_task_name(self) -> str:
+        return self._task_name
+
+    def get_task_description(self) -> str:
+        return self._task_description
 
     # ------------------------------
     # Other methods
@@ -313,16 +319,21 @@ class TestTask(ObjectModel):
         Logger().log_info(f"Task {self._task_id} state changed: {old_state} -> {new_state}", LogLevel.MEDIUM_FREQ)
 
 
-class TestTaskMgr:
+class TestTaskMgr(ObjectModel):
     # ------------------------------
     # Class fields
     # ------------------------------
+
+    _task_container: dict[int, TestTask]
 
     # ------------------------------
     # Class creation
     # ------------------------------
 
     def __init__(self) -> None:
+        super().__init__()
+        self._task_container = dict[int, TestTask]()
+
         Logger().log_info("Test Task Manager correctly initialized", LogLevel.LOW_FREQ)
 
     def destroy(self) -> None:
@@ -332,9 +343,94 @@ class TestTaskMgr:
     # Class interaction
     # ------------------------------
 
+    def create_task(self, module_name: str, name: str, description: str) -> int:
+        new_task = TestTask(module_name, name, description)
+
+        with new_task.get_lock().write():
+            self._task_container[new_task.get_task_id()] = new_task
+
+        return new_task.get_task_id()
+
+    def init_task(self, task_id: int, submodules_json: str) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
+        task = self._validate_and_get_task(task_id)
+        return task.try_to_init(submodules_json)
+
     def stop_task(self, task_id: int) -> None:
-        pass
+        task = self._validate_and_get_task(task_id)
+        task.try_to_stop_task()
+
+    def build_task(self, task_id: int, config_json: str) -> None:
+        task = self._validate_and_get_task(task_id)
+        task.try_to_build(config_json)
+
+    def config_task(self, task_id: int, config_json: str) -> None:
+        task = self._validate_and_get_task(task_id)
+        task.try_to_config(config_json)
+
+    def reconfig_task(self, task_id: int) -> None:
+        task = self._validate_and_get_task(task_id)
+        task.try_to_reconfig_task()
+
+    def schedule_task(self, task_id: int) -> None:
+        task = self._validate_and_get_task(task_id)
+        task.try_to_schedule_task()
+
+    # ------------------------------
+    # API methods
+    # ------------------------------
+
+    def api_create_task(self, task_create_request: TaskCreateRequest) -> CommandResult:
+        try:
+            task_id = self.create_task(task_create_request.module_name, task_create_request.name,
+                                       task_create_request.description)
+            return CommandResult(result="", task_id=task_id)
+        except Exception as e:
+            return CommandResult(result=f"Error while creating task: {e}", task_id=-1)
+
+    def api_stop_task(self, op_request: TaskOperationRequest) -> CommandResult:
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.stop_task(op_request.task_id))
+
+    def api_build_task(self, op_request: TaskOpRequestWithConfig) -> CommandResult:
+        return TestTaskMgr._prepare_simple_command_response(
+            lambda: self.build_task(op_request.task_id, op_request.config))
+
+    def api_config_task(self, op_request: TaskOpRequestWithConfig) -> CommandResult:
+        return TestTaskMgr._prepare_simple_command_response(
+            lambda: self.config_task(op_request.task_id, op_request.config))
+
+    def api_reconfig_task(self, op_request: TaskOperationRequest) -> CommandResult:
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.reconfig_task(op_request.task_id))
+
+    def api_schedule_task(self, op_request: TaskOperationRequest) -> CommandResult:
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.schedule_task(op_request.task_id))
+
+    def api_init_task(self, op_request: TaskOpRequestWithConfig) -> TaskInitResponse:
+        try:
+            lacking_worker_module, lacking_manager_module = self.init_task(op_request.task_id, op_request.config)
+            return TaskInitResponse(worker_config_spec=lacking_worker_module,
+                                    manager_config_spec=lacking_manager_module,
+                                    result="")
+        except Exception as e:
+            return TaskInitResponse(worker_config_spec=None, manager_config_spec=None,
+                                    result=f"Error while initializing task: {e}")
 
     # ------------------------------
     # Private methods
     # ------------------------------
+
+    @staticmethod
+    def _prepare_simple_command_response(action: Callable[[], None]) -> CommandResult:
+        try:
+            action()
+            return CommandResult(result="")
+        except Exception as e:
+            return CommandResult(result=f"Error while performing action: {e}")
+
+    def _validate_task_exists_unlocked(self, task_id: int) -> None:
+        if task_id not in self._task_container:
+            raise ValueError(f"Task {task_id} not found")
+
+    def _validate_and_get_task(self, task_id: int) -> TestTask:
+        with self.get_lock().read():
+            self._validate_task_exists_unlocked(task_id)
+            return self._task_container[task_id]

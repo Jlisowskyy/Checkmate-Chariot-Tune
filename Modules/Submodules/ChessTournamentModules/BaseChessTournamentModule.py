@@ -1,11 +1,12 @@
 from abc import abstractmethod, ABC
 
+from Models.OrchestratorModels import ConfigSpecElement, UiType
 from Modules.BuildableModule import BuildableModule
 from Utils.Logger import Logger, LogLevel
 from ..EngineModule.BaseEngineModule import BaseEngineModule
 from ..SubModulesRegistry import append_submodule_builders
 from ...ModuleBuilder import ModuleBuilderFactory, ModuleBuilder
-from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name, \
+from ...ModuleHelpers import build_config_spec_element, get_config_prefixed_name, \
     build_submodule_spec_element
 
 

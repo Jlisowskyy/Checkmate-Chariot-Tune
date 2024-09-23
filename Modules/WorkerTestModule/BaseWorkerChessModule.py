@@ -1,10 +1,11 @@
 import json
 
+from Models.OrchestratorModels import ConfigSpecElement, UiType
 from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import BaseChessTournamentModule
 from Utils.Helpers import validate_dict_str, validate_string, validate_dict_str_str
 from .BaseWorkerTestModule import BaseWorkerTestModule, append_test_module_builder
 from ..ModuleBuilder import ModuleBuilder
-from ..ModuleHelpers import ConfigSpecElement, build_submodule_spec_element, UiType
+from ..ModuleHelpers import build_submodule_spec_element
 from ..SubModuleMgr import SubModuleMgr
 
 

@@ -1,22 +1,12 @@
 from collections.abc import Callable
-from enum import Enum
 
-from pydantic import BaseModel
-
+from Models.OrchestratorModels import ConfigSpecElement, UiType, default_value_type
 from Utils.Helpers import validate_list_str, validate_string, validate_dict_str_str, validate_dict_str_int, \
     validate_string_dict_string_string_dict
-
 
 # ------------------------------
 # Ui Type
 # ------------------------------
-
-class UiType(Enum):
-    StringList = list[str]
-    String = str
-    StringStringDict = dict[str, str]
-    StringIntPairDict = dict[str, int]
-    StringDictStringStringDict = dict[str, dict[str, str]]
 
 
 UiTypeValidatorDict: dict[UiType, Callable[[any], None]] = {
@@ -36,19 +26,6 @@ if missing_validators:
 # Config Spec Element
 # ------------------------------
 
-default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
-
-
-class ConfigSpecElement(BaseModel):
-    # ------------------------------
-    # Class fields
-    # ------------------------------
-
-    name: str
-    ui_type: UiType
-    description: str
-    default_value: default_value_type
-    is_optional: bool
 
 def build_config_spec_element(
         submodule_name: str,

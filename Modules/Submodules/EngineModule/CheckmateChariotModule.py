@@ -1,9 +1,10 @@
 import os
 
+from Models.OrchestratorModels import ConfigSpecElement, UiType
 from Utils.Helpers import run_shell_command, validate_string
 from .BaseEngineModule import BaseEngineModule, append_engine_builder
 from ...ModuleBuilder import ModuleBuilder
-from ...ModuleHelpers import ConfigSpecElement, build_config_spec_element, UiType, get_config_prefixed_name
+from ...ModuleHelpers import build_config_spec_element, get_config_prefixed_name
 from ...NonConfigurableModule import NonConfigurableModule
 
 

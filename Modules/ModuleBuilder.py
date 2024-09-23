@@ -1,8 +1,9 @@
 from abc import abstractmethod, ABC
 from collections.abc import Callable
 
-from Modules.ModuleHelpers import ConfigSpecElement, extract_submodule_type, validate_submodule_spec_args, \
-    extract_submodule_variable_name, UiType
+from Models.OrchestratorModels import ConfigSpecElement, UiType
+from Modules.ModuleHelpers import extract_submodule_type, validate_submodule_spec_args, \
+    extract_submodule_variable_name
 
 
 # Note: for submodule config name should be same as constructor parameter name

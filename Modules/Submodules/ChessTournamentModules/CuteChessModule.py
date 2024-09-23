@@ -2,12 +2,13 @@ import json
 import os.path
 from subprocess import Popen, PIPE
 
+from Models.OrchestratorModels import ConfigSpecElement
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
 from Utils.Logger import Logger, LogLevel
 from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_builder, \
     BaseChessTournamentModuleBuilder
 from ..EngineModule.BaseEngineModule import BaseEngineModule
-from ...ModuleHelpers import ConfigSpecElement, get_config_prefixed_name
+from ...ModuleHelpers import get_config_prefixed_name
 
 
 # ------------------------------

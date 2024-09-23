@@ -1,6 +1,7 @@
+from Models.OrchestratorModels import ConfigSpecElement, UiType
 from .BaseManagerTestModule import BaseManagerTestModule, append_test_module_builder
 from ..ModuleBuilder import ModuleBuilder
-from ..ModuleHelpers import ConfigSpecElement, build_submodule_spec_element, UiType
+from ..ModuleHelpers import build_submodule_spec_element
 from ..SubModuleMgr import SubModuleMgr
 from ..Submodules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule
 
