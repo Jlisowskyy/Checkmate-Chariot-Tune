@@ -403,6 +403,10 @@ class TestTaskMgr(ObjectModel):
         task = self._validate_and_get_task(task_id)
         return task.get_full_task_query()
 
+    def should_abort_jobs(self, task_id: int, task_gen_num: int) -> bool:
+        task = self._validate_and_get_task(task_id)
+        return task.get_gen_num_locked() != task_gen_num
+
     # ------------------------------
     # API methods
     # ------------------------------

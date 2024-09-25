@@ -1,4 +1,7 @@
+import asyncio
+from collections import deque
 from threading import Thread, Lock, Condition
+from typing import Deque
 
 from Manager.ManagerLib.TestJob import TestJobRequest
 from Models.OrchestratorModels import JobState, WORKABLE_STATES, QUEUEABLE_STATES
@@ -70,7 +73,7 @@ class TestJobMgr(ObjectModel):
 
     _threads: dict[int, TestJobThreadData]
 
-    _job_queues: dict[JobState, list[TestJobRequest]]
+    _job_queues: dict[JobState, Deque[TestJobRequest]]
 
     _cv: Condition
 
@@ -83,7 +86,7 @@ class TestJobMgr(ObjectModel):
         self._startup_worker_threads(SettingsLoader().get_settings().job_threads)
         self._threads = {}
         self._cv = Condition()
-        self._job_queues = {state: [] for state in QUEUEABLE_STATES}
+        self._job_queues = {state: deque() for state in QUEUEABLE_STATES}
 
         Logger().log_info("Test Job Manager correctly initialized", LogLevel.LOW_FREQ)
 
@@ -119,7 +122,7 @@ class TestJobMgr(ObjectModel):
 
     def get_num_requests(self) -> int:
         with self.get_lock().read():
-            return sum(len(queue) for queue in self._job_queues.values())
+            return sum(len(q) for q in self._job_queues.values())
 
     def add_request(self, request: TestJobRequest) -> None:
         if request.get_state() not in self._job_queues:
@@ -127,7 +130,7 @@ class TestJobMgr(ObjectModel):
 
         with self.get_lock().write():
             self._job_queues[request.get_state()].append(request)
-            self._cv.notify_all()
+        self.signal_threads()
 
     def signal_threads(self) -> None:
         self._cv.notify_all()
@@ -148,7 +151,7 @@ class TestJobMgr(ObjectModel):
             tid = self.thread_counter
             self.thread_counter += 1
 
-        thread = Thread(target=lambda: self._worker_thread_func(tid))
+        thread = Thread(target=lambda: self._worker_thread_func_starter(tid))
         self._threads[tid] = TestJobMgr.TestJobThreadData(tid, thread)
 
         thread.start()
@@ -176,13 +179,16 @@ class TestJobMgr(ObjectModel):
         for state in WORKABLE_STATES:
             with self.get_lock().write():
                 if len(self._job_queues[state]) > 0:
-                    return self._job_queues[state].pop()
+                    return self._job_queues[state].popleft()
 
         return None
 
-    def _worker_thread_func(self, tid: int) -> None:
+    def _worker_thread_func_starter(self, tid: int) -> None:
         Logger().log_info(f"Worker thread {tid} started", LogLevel.MEDIUM_FREQ)
+        asyncio.run(self._worker_thread_func(tid))
+        Logger().log_info(f"Worker thread {tid} stopped", LogLevel.MEDIUM_FREQ)
 
+    async def _worker_thread_func(self, tid: int) -> None:
         with self.get_lock().read():
             thread_info = self._threads[tid]
 
@@ -190,7 +196,12 @@ class TestJobMgr(ObjectModel):
 
             request = self._get_next_request()
             while request is not None:
-                request.run()
+
+                try:
+                    await request.run()
+                except Exception as e:
+                    Logger().log_error(f"Error in job execution: {e}", LogLevel.LOW_FREQ)
+                    request.try_to_fail(str(e))
 
                 if not thread_info.cond:
                     break
@@ -201,5 +212,3 @@ class TestJobMgr(ObjectModel):
                 break
 
             self._cv.acquire()
-
-        Logger().log_info(f"Worker thread {tid} stopped", LogLevel.MEDIUM_FREQ)

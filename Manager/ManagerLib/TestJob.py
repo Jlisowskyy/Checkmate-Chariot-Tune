@@ -25,11 +25,14 @@ class TestJobRequest(ObjectModel, ABC):
 
     _result_payload: str
 
+    _task_id: int
+    _task_gen_num: int
+
     # ------------------------------
     # Class creation
     # ------------------------------
 
-    def __init__(self) -> None:
+    def __init__(self, task_id: int, task_gen_num: int) -> None:
         super().__init__()
         self._state = JobState.CREATED
         self._failure_reasons = []
@@ -40,6 +43,8 @@ class TestJobRequest(ObjectModel, ABC):
 
         self._worker = None
         self._result_payload = ""
+        self._task_id = task_id
+        self._task_gen_num = task_gen_num
 
     # ------------------------------
     # Abstract methods
@@ -56,6 +61,12 @@ class TestJobRequest(ObjectModel, ABC):
     # ------------------------------
     # Class interaction
     # ------------------------------
+
+    def get_task_id(self) -> int:
+        return self._task_id
+
+    def get_task_gen_num(self) -> int:
+        return self._task_gen_num
 
     def get_state(self) -> JobState:
         with self.get_lock().read():
@@ -103,20 +114,29 @@ class TestJobRequest(ObjectModel, ABC):
             self._result_payload = payload
 
     def try_to_fail(self, reason: str) -> None:
+        is_failed = False
+
         with self.get_lock().write():
             self._failure_reasons.append(reason)
 
             if len(self._failure_reasons) <= SettingsLoader().get_settings().job_failures_limit:
-                return
+                is_failed = True
 
-            self._state = JobState.FAILED
+        if is_failed:
+            with self.get_lock().write():
+                self._state = JobState.FAILED
+
+            if self._worker is not None:
+                self._worker.on_job_failed()
+
+            with self.get_lock().write():
+                self._worker = None
 
         ManagerComponents().get_test_job_mgr().add_request(self)
-        if self._worker is not None:
-            self._worker.on_job_failed()
 
-        with self.get_lock().write():
-            self._worker = None
+    def abort_job(self) -> None:
+        pass
+
 
     async def run(self) -> None:
         if self.get_state() not in WORKABLE_STATES:

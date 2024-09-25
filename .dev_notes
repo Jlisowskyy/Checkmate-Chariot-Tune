@@ -1,10 +1,8 @@
 MANAGER IMPLEMENT:
-dimplement Test Task class in mgr and derive what is needed ->
-implement Init to Worker ->
-GOTO JOBS IMPLEMENT
 
-JOBS IMPLEMENT:
-
+implement job abort -> implement configuration jobs -> implement test jobs -> implement querying socket responses
+-> implement test job creation -> implement config job creation
+propagete async in task build etc...
 
 
 DISTANT TODO:
