@@ -27,6 +27,18 @@ class WorkerState(IntEnum):
     CONFIGURED = 2
     MARKED_FOR_DELETE = 3
 
+
+class JobState(IntEnum):
+    CREATED = 0
+    PREPARED = 1
+    INFLIGHT = 2
+    COMPLETED = 3
+    FAILED = 4
+    HARDENED = 5
+
+WORKABLE_STATES = [JobState.PREPARED, JobState.COMPLETED]
+QUEUEABLE_STATES = [JobState.PREPARED, JobState.INFLIGHT, JobState.COMPLETED, JobState.FAILED]
+
 # NEW MODELS
 
 class ConfigSpecElement(BaseModel):

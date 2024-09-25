@@ -1,21 +1,13 @@
-from abc import ABC, abstractmethod
 from threading import Thread, Lock, Condition
 
+from Manager.ManagerLib.TestJob import TestJobRequest
+from Models.OrchestratorModels import JobState, WORKABLE_STATES, QUEUEABLE_STATES
 from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
 from Utils.SettingsLoader import SettingsLoader
 
 
-class TestJobRequest(ABC):
-    def __init__(self) -> None:
-        pass
-
-    @abstractmethod
-    def run(self) -> None:
-        pass
-
-
-class TestJob(TestJobRequest):
+class TestJob():
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -78,7 +70,7 @@ class TestJobMgr(ObjectModel):
 
     _threads: dict[int, TestJobThreadData]
 
-    _requests_queue: list[TestJobRequest]
+    _job_queues: dict[JobState, list[TestJobRequest]]
 
     _cv: Condition
 
@@ -90,15 +82,15 @@ class TestJobMgr(ObjectModel):
         super().__init__()
         self._startup_worker_threads(SettingsLoader().get_settings().job_threads)
         self._threads = {}
-        self._requests_queue = []
         self._cv = Condition()
+        self._job_queues = {state: [] for state in QUEUEABLE_STATES}
 
         Logger().log_info("Test Job Manager correctly initialized", LogLevel.LOW_FREQ)
 
     def destroy(self) -> None:
         self._stop_worker_threads(len(self._threads))
 
-        Logger().log_info(f"Remaining requests in queue will be lost: {len(self._requests_queue)}", LogLevel.LOW_FREQ)
+        Logger().log_info(f"Remaining requests in queue will be lost: {self.get_num_requests()}", LogLevel.LOW_FREQ)
         Logger().log_info("Test Job Manager destroyed", LogLevel.LOW_FREQ)
 
     # ------------------------------
@@ -125,10 +117,20 @@ class TestJobMgr(ObjectModel):
         with self.get_lock().read():
             return len(self._threads)
 
+    def get_num_requests(self) -> int:
+        with self.get_lock().read():
+            return sum(len(queue) for queue in self._job_queues.values())
+
     def add_request(self, request: TestJobRequest) -> None:
+        if request.get_state() not in self._job_queues:
+            raise ValueError(f"Invalid job state: {request.get_state()}")
+
         with self.get_lock().write():
-            self._requests_queue.append(request)
+            self._job_queues[request.get_state()].append(request)
             self._cv.notify_all()
+
+    def signal_threads(self) -> None:
+        self._cv.notify_all()
 
     # ------------------------------
     # Private methods
@@ -171,11 +173,12 @@ class TestJobMgr(ObjectModel):
                 self._unregister_thread_unlocked(tid)
 
     def _get_next_request(self) -> TestJobRequest | None:
-        with self.get_lock().write():
-            if not self._requests_queue:
-                return None
+        for state in WORKABLE_STATES:
+            with self.get_lock().write():
+                if len(self._job_queues[state]) > 0:
+                    return self._job_queues[state].pop()
 
-            return self._requests_queue.pop()
+        return None
 
     def _worker_thread_func(self, tid: int) -> None:
         Logger().log_info(f"Worker thread {tid} started", LogLevel.MEDIUM_FREQ)

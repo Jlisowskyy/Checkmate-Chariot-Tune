@@ -13,6 +13,7 @@ class ManagerSettings(BaseModel):
     worker_timeout: int = 10
     build_dir: str = "/tmp/Checkmate-Chariot-tune-builds/"
     job_threads = 8
+    job_failures_limit: int = 3
 
 
 def update_logger_freq(settings: BaseModel) -> None:

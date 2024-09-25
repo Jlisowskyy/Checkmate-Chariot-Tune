@@ -5,9 +5,10 @@ from threading import Lock
 from fastapi import WebSocket
 
 from Manager.ManagerLib.ErrorTable import ErrorTable
-from Models.WorkerModels import WorkerModel, WorkerAuth
-from Utils.RWLock import RWLock, ObjectModel
 from Models.OrchestratorModels import WorkerState
+from Models.WorkerModels import WorkerModel, WorkerAuth
+from Utils.RWLock import ObjectModel
+
 
 class Worker(ObjectModel):
     # ------------------------------
@@ -115,3 +116,12 @@ class Worker(ObjectModel):
     def get_state(self) -> WorkerState:
         with self.get_lock().read():
             return self._state
+
+    def on_job_started(self) -> None:
+        pass
+
+    def on_job_completed(self) -> None:
+        pass
+
+    def on_job_failed(self) -> None:
+        pass
