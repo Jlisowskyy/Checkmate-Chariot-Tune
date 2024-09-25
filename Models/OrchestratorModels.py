@@ -21,7 +21,11 @@ class TaskState(IntEnum):
     READY = 3
     SCHEDULED = 4
 
-
+class WorkerState(IntEnum):
+    REGISTERED = 0
+    CONNECTED = 1
+    CONFIGURED = 2
+    MARKED_FOR_DELETE = 3
 
 # NEW MODELS
 

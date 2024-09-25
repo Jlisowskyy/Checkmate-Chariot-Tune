@@ -64,9 +64,10 @@ async def websocket_endpoint(websocket: WebSocket):
     Logger().log_info(f"Received active connection from: {addr}", LogLevel.MEDIUM_FREQ)
 
     try:
-        ManagerComponents().get_worker_mgr().worker_loop(websocket)
+        await ManagerComponents().get_worker_mgr().worker_socket_accept(websocket)
     except Exception as e:
         Logger().log_error(f"Error occurred during active connection: {e}", LogLevel.LOW_FREQ)
+        await websocket.close()
+        return
 
-    await websocket.close()
     Logger().log_info(f"Active connection to {addr} closed", LogLevel.MEDIUM_FREQ)

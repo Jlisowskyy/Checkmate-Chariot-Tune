@@ -26,9 +26,6 @@ class RWLock:
         if self._read_counter < 0:
             Logger().log_error("Read counter on RWLock was negative!", LogLevel.LOW_FREQ)
 
-        # Wait till all read and write operations are released
-        self.get_write()
-
     # ------------------------------
     # Class interaction
     # ------------------------------

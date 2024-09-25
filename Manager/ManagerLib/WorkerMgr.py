@@ -7,8 +7,8 @@ from pydantic import BaseModel
 from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerAuth
 from Utils.Helpers import convert_ns_to_s, convert_s_to_ns
-from . import Worker
 from .ErrorTable import ErrorTable
+from .Worker import Worker
 from ...Models.WorkerModels import WorkerModel
 from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
 from ...Utils.Logger import Logger, LogLevel
@@ -97,72 +97,11 @@ class WorkerMgr:
     def unregister_unlocked(worker: Worker, unregister_request: WorkerAuth) -> ErrorTable:
         if worker.get_session_token() == unregister_request.session_token:
             worker.mark_for_deletion()
-            Logger().log_info(f"Worker with name: {worker.name} marked for deletion", LogLevel.LOW_FREQ)
+            Logger().log_info(f"Worker with name: {unregister_request.name} marked for deletion", LogLevel.LOW_FREQ)
             return ErrorTable.SUCCESS
         return ErrorTable.INVALID_TOKEN
 
-    async def worker_loop(self, socket: WebSocket) -> None:
-        worker = await self._worker_loop_auth(socket)
-        await WorkerMgr._worker_loop_conf_routine(worker, socket)
-
-        while not worker.is_marked_for_deletion():
-            pass
-
-    def bump_ka(self, worker_auth: WorkerAuth) -> ErrorTable:
-        with self._workers_queue_lock:
-            for queue_worker in self._workers_queue:
-                if queue_worker.is_same(worker_auth.name):
-                    return self._bump_ka_internal(worker_auth, queue_worker)
-
-            with self._workers_lock:
-                if worker_auth.name in self._workers.keys() and \
-                        not self._workers[worker_auth.name].is_marked_for_deletion():
-                    return self._bump_ka_internal(worker_auth, self._workers[worker_auth.name])
-
-        Logger().log_info(f"KA for {worker_auth.name} not bumped due to: Worker not found", LogLevel.LOW_FREQ)
-        return ErrorTable.WORKER_NOT_FOUND
-
-    # ------------------------------
-    # Private methods
-    # ------------------------------
-
-    @staticmethod
-    async def _worker_loop_send_msg(worker: Worker, websocket: WebSocket, msg: BaseModel) -> None:
-        msg_str = msg.model_dump_json()
-
-        Logger().log_info(f"Sending msg: {msg_str} to worker: {worker.name}", LogLevel.HIGH_FREQ)
-
-        try:
-            await websocket.send_json(msg_str)
-        except Exception as e:
-            if worker.is_marked_for_deletion():
-                raise Exception("Worker is marked for deletion. Aborting worker loop...")
-            else:
-                raise e
-
-        Logger().log_info(f"Msg: {msg_str} sent to worker with name: {worker.name}", LogLevel.HIGH_FREQ)
-
-    @staticmethod
-    async def _worker_loop_rcv_msg(worker: Worker, websocket: WebSocket) -> str:
-        Logger().log_info(f"Receiving msg for worker: {worker.name}", LogLevel.HIGH_FREQ)
-
-        try:
-            msg = await websocket.receive_json()
-        except Exception as e:
-            if worker.is_marked_for_deletion():
-                raise Exception("Worker is being deleted. Aborting...")
-            else:
-                raise e
-
-        Logger().log_info(f"Received msg: {msg} for worker: {worker.name}", LogLevel.HIGH_FREQ)
-
-        return msg
-
-    @staticmethod
-    async def _worker_loop_conf_routine(worker: Worker, websocket: WebSocket) -> None:
-        pass
-
-    async def _worker_loop_auth(self, websocket: WebSocket) -> Worker:
+    async def worker_socket_accept(self, websocket: WebSocket) -> None:
         self._wait_for_registration_move()
 
         auth = await websocket.receive_json()
@@ -179,17 +118,66 @@ class WorkerMgr:
                 await websocket.send_json(CommandResult(result=ErrorTable.INVALID_TOKEN.name).model_dump_json())
                 raise Exception("Session token not match")
 
-        Logger().log_info(f"Correctly authenticated worker: {worker.name}", LogLevel.MEDIUM_FREQ)
+        Logger().log_info(f"Correctly authenticated worker: {worker.get_model().name}", LogLevel.MEDIUM_FREQ)
 
         status = worker.set_conn_socket(websocket)
         await websocket.send_json(CommandResult(result=status.name).model_dump_json())
 
         if status != ErrorTable.SUCCESS:
-            raise Exception(f"Failed to bond worker: {worker.name} with socket: {status.name}")
+            raise Exception(f"Failed to bond worker: {worker.get_model().name} with socket: {status.name}")
 
-        Logger().log_info(f"Worker: {worker.name} correctly bonded with loop socket", LogLevel.MEDIUM_FREQ)
+        Logger().log_info(f"Worker: {worker.get_model().name} correctly bonded with loop socket", LogLevel.MEDIUM_FREQ)
 
-        return worker
+
+    def bump_ka(self, worker_auth: WorkerAuth) -> ErrorTable:
+        with self._workers_queue_lock:
+            for queue_worker in self._workers_queue:
+                if queue_worker.is_same(worker_auth.name):
+                    return self._bump_ka_internal(queue_worker, worker_auth)
+
+            with self._workers_lock:
+                if worker_auth.name in self._workers.keys() and \
+                        not self._workers[worker_auth.name].is_marked_for_deletion():
+                    return self._bump_ka_internal(self._workers[worker_auth.name], worker_auth)
+
+        Logger().log_info(f"KA for {worker_auth.name} not bumped due to: Worker not found", LogLevel.LOW_FREQ)
+        return ErrorTable.WORKER_NOT_FOUND
+
+    # ------------------------------
+    # Private methods
+    # ------------------------------
+
+    @staticmethod
+    async def _worker_loop_send_msg(worker: Worker, websocket: WebSocket, msg: BaseModel) -> None:
+        msg_str = msg.model_dump_json()
+
+        Logger().log_info(f"Sending msg: {msg_str} to worker: {worker.get_model().name}", LogLevel.HIGH_FREQ)
+
+        try:
+            await websocket.send_json(msg_str)
+        except Exception as e:
+            if worker.is_marked_for_deletion():
+                raise Exception("Worker is marked for deletion. Aborting worker loop...")
+            else:
+                raise e
+
+        Logger().log_info(f"Msg: {msg_str} sent to worker with name: {worker.get_model().name}", LogLevel.HIGH_FREQ)
+
+    @staticmethod
+    async def _worker_loop_rcv_msg(worker: Worker, websocket: WebSocket) -> str:
+        Logger().log_info(f"Receiving msg for worker: {worker.get_model().name}", LogLevel.HIGH_FREQ)
+
+        try:
+            msg = await websocket.receive_json()
+        except Exception as e:
+            if worker.is_marked_for_deletion():
+                raise Exception("Worker is being deleted. Aborting...")
+            else:
+                raise e
+
+        Logger().log_info(f"Received msg: {msg} for worker: {worker.get_model().name}", LogLevel.HIGH_FREQ)
+
+        return msg
 
     @staticmethod
     def _bump_ka_internal(worker: Worker, worker_auth: WorkerAuth) -> ErrorTable:
@@ -242,8 +230,8 @@ class WorkerMgr:
                     continue
 
                 with self._workers_lock:
-                    self._workers[worker.model.name] = worker
-                Logger().log_info(f"Worker: {worker.model.name} moved from queue to db", LogLevel.HIGH_FREQ)
+                    self._workers[worker.get_model().name] = worker
+                Logger().log_info(f"Worker: {worker.get_model().name} moved from queue to db", LogLevel.HIGH_FREQ)
 
         with self._move_cv:
             self._move_cv.notify_all()
