@@ -51,11 +51,11 @@ class TestJobRequest(ObjectModel, ABC):
     # ------------------------------
 
     @abstractmethod
-    async def _process_prepared_internal(self) -> str:
+    async def _process_prepared_unlocked_internal(self) -> str:
         pass
 
     @abstractmethod
-    async def _process_completed_internal(self, payload: str) -> None:
+    async def _process_completed_unlocked_internal(self, payload: str) -> None:
         pass
 
     # ------------------------------
@@ -77,29 +77,19 @@ class TestJobRequest(ObjectModel, ABC):
 
     def prepare_job(self, worker: Worker) -> None:
         with self.get_lock().write():
-            if self._worker is not None:
-                raise Exception("Worker already set for job!")
-
-            if self._state != JobState.CREATED:
-                raise Exception("Job state is not prepared!")
-
-            if worker.get_state() != WorkerState.CONNECTED:
-                raise Exception("Worker is not connected!")
-
-            self._worker = worker
-            self._state = JobState.PREPARED
+            self._prepare_job_unlocked(worker)
 
     def detach_from_worker(self) -> None:
         with self.get_lock().write():
-            if self._worker is None:
-                raise Exception("Worker not set for job!")
-
-            self._worker = None
-            self._state = JobState.CREATED
+            self._detach_from_worker_unlocked()
 
     def get_failure_counter(self) -> int:
         with self.get_lock().read():
             return len(self._failure_reasons)
+
+    def is_attached_to_worker(self) -> bool:
+        with self.get_lock().read():
+            return self._is_attached_to_worker_unlocked()
 
     def get_failure_reasons(self) -> list[str]:
         with self.get_lock().read():
@@ -114,75 +104,93 @@ class TestJobRequest(ObjectModel, ABC):
             self._result_payload = payload
 
     def try_to_fail(self, reason: str) -> None:
-        is_failed = False
-
         with self.get_lock().write():
-            self._failure_reasons.append(reason)
-
-            if len(self._failure_reasons) <= SettingsLoader().get_settings().job_failures_limit:
-                is_failed = True
-
-        if is_failed:
-            with self.get_lock().write():
-                self._state = JobState.FAILED
-
-            if self._worker is not None:
-                self._worker.on_job_failed()
-
-            with self.get_lock().write():
-                self._worker = None
+            self._try_to_fail_unlocked(reason)
 
         ManagerComponents().get_test_job_mgr().add_request(self)
 
     def abort_job(self) -> None:
-        pass
-
+        with self.get_lock().write:
+            self._abort_job_unlocked()
 
     async def run(self) -> None:
-        if self.get_state() not in WORKABLE_STATES:
-            raise Exception("Job is not in a workable state!")
+        with self.get_lock().write():
+            await self._run_unlocked()
 
-        if self.get_state() == JobState.PREPARED:
-            await self._process_prepared()
-        elif self.get_state() == JobState.COMPLETED:
-            await self._process_completed()
-        elif self.get_state() in WORKABLE_STATES:
-            raise Exception("Job state is not implemented!")
-        else:
-            raise Exception("Job state is not workable!")
 
     # ------------------------------
     # Private methods
     # ------------------------------
 
-    async def _process_prepared(self) -> None:
-        with self.get_lock().read():
-            if self._state != JobState.PREPARED:
-                raise Exception("Job state is not prepared!")
+    def _abort_job_unlocked(self) -> None:
+        if self._is_attached_to_worker_unlocked():
+            self._detach_from_worker_unlocked()
 
-            worker = self._worker
+    def _prepare_job_unlocked(self, worker: Worker) -> None:
+        if self._is_attached_to_worker_unlocked():
+            raise Exception("Worker already set for job!")
+
+        if self._state != JobState.CREATED:
+            raise Exception("Job state is not prepared!")
 
         if worker.get_state() != WorkerState.CONNECTED:
             raise Exception("Worker is not connected!")
 
-        socket = worker.get_conn_socket()
-        payload = await self._process_prepared_internal()
+        self._worker = worker
+        self._state = JobState.PREPARED
+
+    def _detach_from_worker_unlocked(self) -> None:
+        if self._worker is None:
+            raise Exception("Worker not set for job!")
+
+        self._worker = None
+        self._state = JobState.CREATED
+
+    def _is_attached_to_worker_unlocked(self) -> bool:
+        return self._worker is not None
+
+    def _try_to_fail_unlocked(self, reason: str) -> None:
+        self._failure_reasons.append(reason)
+
+        if len(self._failure_reasons) <= SettingsLoader().get_settings().job_failures_limit:
+            self._state = JobState.FAILED
+
+            if self._worker is not None:
+                self._worker.on_job_failed()
+
+            self._worker = None
+
+    async def _run_unlocked(self) -> None:
+        if self._state not in WORKABLE_STATES:
+            raise Exception("Job is not in a workable state!")
+
+        if self._worker is None:
+            raise Exception("Job is not attached to any worker!")
+
+        if self._state == JobState.PREPARED:
+            await self._process_prepared_unlocked()
+        elif self._state == JobState.COMPLETED:
+            await self._process_completed_unlocked()
+        elif self._state in WORKABLE_STATES:
+            raise Exception("Job state is not implemented!")
+        else:
+            raise Exception("Job state is not workable!")
+
+    async def _process_prepared_unlocked(self) -> None:
+        if self._worker.get_state() != WorkerState.CONNECTED:
+            raise Exception("Worker is not connected!")
+
+        socket = self._worker.get_conn_socket()
+        payload = await self._process_prepared_unlocked_internal()
 
         await socket.send_text(payload)
 
-        with self.get_lock().write():
-            self._state = JobState.INFLIGHT
-        worker.on_job_started()
+        self._state = JobState.INFLIGHT
+        self._worker.on_job_started()
         ManagerComponents().get_test_job_mgr().add_request(self)
 
-    async def _process_completed(self) -> None:
-        with self.get_lock().read():
-            if self._state != JobState.COMPLETED:
-                raise Exception("Job state is not completed!")
+    async def _process_completed_unlocked(self) -> None:
+        await self._process_completed_unlocked_internal(self._result_payload)
 
-        await self._process_completed_internal(self._result_payload)
-
-        with self.get_lock().write():
-            self._state = JobState.HARDENED
-
+        self._state = JobState.HARDENED
         self._worker.on_job_completed()

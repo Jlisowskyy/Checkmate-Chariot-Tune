@@ -21,11 +21,14 @@ class Logger(metaclass=GlobalObj):
 
     _log_stdout: bool
     _log_file_name: str
-    _log_file: TextIO
     _log_level: LogLevel
+
+    _log_file: TextIO
+
     _lock: Lock
     _io_flusher: Thread
     _should_flush: bool
+    _log_que: list[str]
 
     # ------------------------------
     # Class creation
@@ -36,6 +39,7 @@ class Logger(metaclass=GlobalObj):
         self._log_file_name = path
         self._lock = Lock()
         self._log_level = logLevel
+        self._log_que = []
 
         try:
             self._log_file = open(self._log_file_name, 'a')
@@ -93,11 +97,8 @@ class Logger(metaclass=GlobalObj):
         if log_level > self._log_level:
             return
 
-        if self._log_stdout:
-            print(msg)
-
         with self._lock:
-            self._log_file.write(f"{msg}\n")
+            self._log_que.append(msg)
 
     def log_info(self, msg: str, log_level: LogLevel) -> None:
         self.log(Logger.wrap_info(Logger.wrap_freq(msg, log_level)), log_level)
@@ -117,5 +118,13 @@ class Logger(metaclass=GlobalObj):
             time.sleep(0.01)
 
             with self._lock:
+                full_msg = "\n".join(self._log_que)
+                self._log_que.clear()
+
+                if self._log_stdout:
+                    print(full_msg)
+
+                self._log_file.write(full_msg)
+
                 self._log_file.flush()
                 os.fsync(self._log_file.fileno())
