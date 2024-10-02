@@ -55,10 +55,10 @@ class WorkerComponents(metaclass=GlobalObj):
     def destroy_components(self) -> None:
         if self._test_job_mgr:
             self._test_job_mgr.destroy()
-        if self._worker_process:
-            self._worker_process.destroy()
         if self._connection_mgr:
             self._connection_mgr.destroy()
+        if self._worker_process:
+            self._worker_process.destroy()
 
     def is_inited(self) -> bool:
         return self._connection_mgr is not None and self._test_job_mgr is not None and self._worker_process is not None

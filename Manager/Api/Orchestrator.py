@@ -1,40 +1,59 @@
 from fastapi import APIRouter
 
 from ...Models.OrchestratorModels import *
+from Manager.ManagerLib.ManagerComponents import ManagerComponents
 
 router = APIRouter()
 
+# ------------------------------
+# Task API
+# ------------------------------
 
-@router.post("/orchestrator/enqueue-test", tags=["orchestrator"])
-async def enqueue_test(test: TestDescription) -> CommandResult:
-    return CommandResult(resultCode="")
+@router.post("/orchestrator/task/create", tags=["orchestrator"])
+async def create_task(task: TaskCreateRequest) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_create_task(task)
 
+@router.post("/orchestrator/task/stop", tags=["orchestrator"])
+async def stop_task(task: TaskOperationRequest) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_stop_task(task)
 
-@router.get("/orchestrator/get-tests", tags=["orchestrator"])
-async def get_tests(auth: AuthInfo) -> TestInfo:
-    return TestInfo(result=CommandResult(resultCode=""), tests=[])
+@router.post("/orchestrator/task/build", tags=["orchestrator"])
+async def build_task(task: TaskOpRequestWithConfig) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_build_task(task)
 
+@router.post("/orchestrator/task/config", tags=["orchestrator"])
+async def config_task(task: TaskOpRequestWithConfig) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_config_task(task)
 
-@router.get("/orchestrator/read-results", tags=["orchestrator"])
-async def get_results(test_access: TestAccessInfo) -> TestResults:
-    return TestResults(result=CommandResult(resultCode=""), tests=[])
+@router.post("/orchestrator/task/reconfig", tags=["orchestrator"])
+async def reconfig_task(task: TaskOperationRequest) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_reconfig_task(task)
 
+@router.post("/orchestrator/task/schedule", tags=["orchestrator"])
+async def schedule_task(task: TaskOperationRequest) -> CommandResult:
+    return ManagerComponents().get_test_task_mgr().api_schedule_task(task)
 
-@router.get("/orchestrator/get-backup", tags=["orchestrator"])
-async def get_backup(test_access: TestAccessInfo) -> Backup:
-    return Backup(result=CommandResult(resultCode=""), tests=[])
+@router.post("orchestrator/task/init", tags=["orchestrator"])
+async def init_task(task: TaskOpRequestWithConfig) -> TaskInitResponse:
+    return ManagerComponents().get_test_task_mgr().api_init_task(task)
 
+@router.post("/orchestrator/task/query/minimal", tags=["orchestrator"])
+async def query_task_minimal() -> TaskMinimalQueryAllResponse:
+    return ManagerComponents().get_test_task_mgr().api_minimal_query_all_tasks()
 
-@router.delete("/orchestrator/delete-test", tags=["orchestrator"])
-async def delete_test(test_access: TestAccessInfo) -> CommandResult:
-    return CommandResult(resultCode="")
+@router.post("/orchestrator/task/task/config-spec", tags=["orchestrator"])
+async def query_task_config_spec(task: TaskOperationRequest) -> TaskConfigSpecResponse:
+    return ManagerComponents().get_test_task_mgr().api_get_task_config_spec(task)
 
+@router.post("/orchestrator/task/task/build-spec", tags=["orchestrator"])
+async def query_task_build_spec(task: TaskOperationRequest) -> TaskConfigSpecResponse:
+    return ManagerComponents().get_test_task_mgr().api_get_task_build_spec(task)
 
-@router.post("/orchestrator/stop-test", tags=["orchestrator"])
-async def stop_test(test_access: TestAccessInfo) -> CommandResult:
-    return CommandResult(resultCode="")
+@router.post("/orchestrator/task/query/full", tags=["orchestrator"])
+async def query_task_full(task: TaskOperationRequest) -> TestTaskFullQuery:
+    return ManagerComponents().get_test_task_mgr().api_get_task_query(task)
 
+# ------------------------------
+# Worker API
+# ------------------------------
 
-@router.post("/orchestrator/start-test", tags=["orchestrator"])
-async def start_test(test_access: TestAccessInfo) -> CommandResult:
-    return CommandResult(resultCode="")

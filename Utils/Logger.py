@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import IntEnum
 from threading import Lock, Thread, get_ident
 from typing import TextIO
+import inspect  # Import inspect to get the stack frame
 
 from .GlobalObj import GlobalObj
 
@@ -75,15 +76,15 @@ class Logger(metaclass=GlobalObj):
 
     @staticmethod
     def wrap_warning(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"WARN  {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(Logger._get_caller_info(f"WARN  {msg}")))
 
     @staticmethod
     def wrap_info(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"INFO  {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(Logger._get_caller_info(f"INFO  {msg}")))
 
     @staticmethod
     def wrap_error(msg: str) -> str:
-        return Logger.wrap_log(Logger.wrap_thread(f"ERROR {msg}"))
+        return Logger.wrap_log(Logger.wrap_thread(Logger._get_caller_info(f"ERROR {msg}")))
 
     @staticmethod
     def wrap_thread(msg: str) -> str:
@@ -92,6 +93,13 @@ class Logger(metaclass=GlobalObj):
     @staticmethod
     def wrap_freq(msg: str, log_level: LogLevel) -> str:
         return f" {log_level.name:12} {msg}"
+
+    @staticmethod
+    def _get_caller_info(msg: str) -> str:
+        frame = inspect.stack()[3]
+        filename = os.path.basename(frame.filename)
+        lineno = frame.lineno
+        return f"{filename}:{lineno} {msg}"
 
     def log(self, msg: str, log_level: LogLevel) -> None:
         if log_level > self._log_level:
@@ -118,7 +126,10 @@ class Logger(metaclass=GlobalObj):
             time.sleep(0.01)
 
             with self._lock:
-                full_msg = "\n".join(self._log_que)
+                if len(self._log_que) == 0:
+                    continue
+
+                full_msg = "\n".join(self._log_que) + "\n"
                 self._log_que.clear()
 
                 if self._log_stdout:

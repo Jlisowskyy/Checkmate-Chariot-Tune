@@ -77,14 +77,17 @@ class BaseCli(ABC):
     # Class interaction
     # ------------------------------
 
-    def parse_args(self, args: list[str]):
+    def parse_args(self, args: list[str]) -> int:
+        rv = 0
+
         try:
             self._parse_args_internal(args)
         except Exception as e:
             self._notify_parse_fail(e)
             Logger().log_error(f"During argument parsing, error occurred: {e}", LogLevel.LOW_FREQ)
+            rv = 1
 
-        return self
+        return rv
 
     @staticmethod
     def is_command(arg: str) -> bool:

@@ -4,4 +4,5 @@ import sys
 from Worker.main_cli import main_cli
 
 if __name__ == '__main__':
-    main_cli(sys.argv[1:])
+    rv = main_cli(sys.argv[1:])
+    exit(rv)

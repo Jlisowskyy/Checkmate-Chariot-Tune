@@ -4,6 +4,7 @@ from asyncio import Lock
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Manager.ManagerLib.Worker import Worker
 from Models.OrchestratorModels import JobState, WorkerState, WORKABLE_STATES
+from Utils.Logger import Logger, LogLevel
 from Utils.RWLock import ObjectModel
 from Utils.SettingsLoader import SettingsLoader
 
@@ -45,6 +46,14 @@ class TestJobRequest(ObjectModel, ABC):
         self._result_payload = ""
         self._task_id = task_id
         self._task_gen_num = task_gen_num
+
+        Logger().log_info(
+            f"TestJobRequest created with ID: {self._test_job_id} for task ID: {self._task_id} with gen num: {self._task_gen_num}",
+            LogLevel.HIGH_FREQ)
+
+    def __del__(self):
+        Logger().log_info(f"TestJobRequest deleted with ID: {self._test_job_id} and state: {self._state.name}, "
+                          f"for task with id: {self._task_id} and gen num: {self._task_gen_num}", LogLevel.HIGH_FREQ)
 
     # ------------------------------
     # Abstract methods
@@ -117,7 +126,6 @@ class TestJobRequest(ObjectModel, ABC):
         with self.get_lock().write():
             await self._run_unlocked()
 
-
     # ------------------------------
     # Private methods
     # ------------------------------
@@ -125,6 +133,8 @@ class TestJobRequest(ObjectModel, ABC):
     def _abort_job_unlocked(self) -> None:
         if self._is_attached_to_worker_unlocked():
             self._detach_from_worker_unlocked()
+
+        # TODO: Implement abort job
 
     def _prepare_job_unlocked(self, worker: Worker) -> None:
         if self._is_attached_to_worker_unlocked():

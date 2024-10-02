@@ -101,7 +101,26 @@ class TestJobMgr(ObjectModel):
     # ------------------------------
 
     def stop_task_jobs(self, task_id: int, task_gen_num: int) -> None:
-        pass
+        Logger().log_info(f"Stopping task jobs for task: {task_id} with gen num: {task_gen_num}", LogLevel.MEDIUM_FREQ)
+
+        for state in QUEUEABLE_STATES:
+            jobs_to_abort = []
+            cleaned_jobs = []
+
+            with self.get_lock().write():
+                for job in self._job_queues[state]:
+                    if job.get_task_id() == task_id and job.get_task_gen_num() == task_gen_num:
+                        jobs_to_abort.append(job)
+                    else:
+                        cleaned_jobs.append(job)
+
+                self._job_queues[state] = deque(cleaned_jobs)
+
+            for job in jobs_to_abort:
+                job.abort_job()
+
+        Logger().log_info("Finished stopping task jobs for task: {task_id} with gen num: {task_gen_num}",
+                          LogLevel.MEDIUM_FREQ)
 
     def update_thread_count(self, new_thread_count: int) -> None:
         if new_thread_count < 1:
@@ -125,6 +144,11 @@ class TestJobMgr(ObjectModel):
             return sum(len(q) for q in self._job_queues.values())
 
     def add_request(self, request: TestJobRequest) -> None:
+        Logger().log_info(
+            f"Adding request to queue with id: {request.get_id()} from task: {request.get_task_id()}"
+            f" and task gen num: {request.get_task_gen_num()}",
+            LogLevel.HIGH_FREQ)
+
         if request.get_state() not in self._job_queues:
             raise ValueError(f"Invalid job state: {request.get_state()}")
 
@@ -176,7 +200,8 @@ class TestJobMgr(ObjectModel):
                 self._unregister_thread_unlocked(tid)
 
     def _get_next_request(self) -> TestJobRequest | None:
-        for state in WORKABLE_STATES:
+        # Start from completed jobs and go back to prepared jobs
+        for state in WORKABLE_STATES.reverse():
             with self.get_lock().write():
                 if len(self._job_queues[state]) > 0:
                     return self._job_queues[state].popleft()

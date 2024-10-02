@@ -9,7 +9,7 @@ from .WorkerLib.WorkerSettings import WorkerSettings
 SETTINGS_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/settings.json"
 
 
-def main_cli(args: list[str]) -> None:
+def main_cli(args: list[str]) -> int:
     # init logger
     Logger("./cli.log", False, LogLevel.MEDIUM_FREQ)
     SettingsLoader(WorkerSettings, SETTINGS_PATH)
@@ -17,7 +17,9 @@ def main_cli(args: list[str]) -> None:
     ProjectInfoInstance.display_info("CLI")
 
     cli = Cli()
-    cli.parse_args(args)
+    rv = cli.parse_args(args)
 
     SettingsLoader().destroy()
     Logger().destroy()
+
+    return rv

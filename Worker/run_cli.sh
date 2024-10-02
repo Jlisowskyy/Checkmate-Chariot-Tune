@@ -6,3 +6,6 @@ cd ..
 
 source .venv/bin/activate
 python worker_cli.py "$@"
+exit_code=$?
+
+exit $exit_code

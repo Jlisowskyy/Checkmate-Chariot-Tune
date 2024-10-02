@@ -202,7 +202,7 @@ class CliTranslator(BaseCli):
                                 "Average job time: NOT IMPLEMENTED\n")
 
         connectivity_mgr_status = (f"Registration status: {WorkerComponents().get_conn_mgr().get_registered_str()}\n"
-                                   f"Last registration KA hardened: {WorkerComponents().get_conn_mgr().get_last_ka_str()}"
+                                   f"Last registration KA hardened: {WorkerComponents().get_conn_mgr().get_last_ka_str()}\n"
                                    f"Registered name: {WorkerComponents().get_conn_mgr().get_registered_name()}\n"
                                    f"Session token: {WorkerComponents().get_conn_mgr().get_registered_token()}\n"
                                    "Connection status: NOT IMPLEMENTED\n")

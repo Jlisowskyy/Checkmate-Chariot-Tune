@@ -13,6 +13,9 @@ def worker_process_init():
     # init logger
     Logger(LOGGER_PATH, False, LogLevel.MEDIUM_FREQ)
 
+    # init SettingsLoader
+    SettingsLoader(WorkerSettings, SETTINGS_PATH)
+
     try:
         WorkerComponents().init_components()
     except Exception as e:
@@ -22,13 +25,10 @@ def worker_process_init():
             WorkerComponents().destroy_components()
 
     if WorkerComponents().is_inited():
-        # init SettingsLoader
-        SettingsLoader(WorkerSettings, SETTINGS_PATH)
 
         WorkerComponents().get_worker_process().start_processing()
         WorkerComponents().get_worker_process().wait_for_stop()
-
         WorkerComponents().destroy_components()
-        SettingsLoader().destroy()
 
+    SettingsLoader().destroy()
     Logger().destroy()

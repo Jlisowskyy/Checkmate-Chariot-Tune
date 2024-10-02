@@ -91,8 +91,7 @@ class WorkerProcess:
     # Private methods
     # ------------------------------
 
-    @staticmethod
-    def _thread_guard(func: Callable):
+    def _thread_guard(self, func: Callable):
         tries = SettingsLoader().get_settings().thread_retries
 
         while tries > 0:
@@ -107,11 +106,17 @@ class WorkerProcess:
                 Logger().log_error(f"Thread func: {func.__name__} failed: {e}. {react_str}", LogLevel.LOW_FREQ)
                 time.sleep(0.1)
 
+        if tries == 0:
+            self.set_stop_type(StopType.abort_stop)
+            self.stop_processing()
+
         Logger().log_info("Thread stopped...", LogLevel.LOW_FREQ)
 
     def _worker_cli_try_catch_guard(self, call: Callable) -> any:
         try:
             return call()
+        except socket.timeout:
+            return None
         except Exception as e:
             if self._should_threads_work:
                 Logger().log_error(f"Failed to process socket operation {call} because of error: {e}",
@@ -119,6 +124,8 @@ class WorkerProcess:
             return None
 
     def _worker_cli_thread(self) -> None:
+        Logger().log_info("CLI thread started...", LogLevel.LOW_FREQ)
+
         self._cli_socket.bind(("localhost", SettingsLoader().get_settings().process_port))
         self._cli_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._cli_socket.listen()
@@ -153,4 +160,4 @@ class WorkerProcess:
                 Logger().log_error(f"Failed to send response to client: {e}", LogLevel.LOW_FREQ)
 
     def _worker_cli_thread_guarded(self):
-        WorkerProcess._thread_guard(self._worker_cli_thread)
+        self._thread_guard(self._worker_cli_thread)

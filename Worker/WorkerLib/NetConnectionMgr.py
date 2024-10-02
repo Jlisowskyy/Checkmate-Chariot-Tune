@@ -60,19 +60,19 @@ class NetConnectionMgr:
         self._ka_thread.join()
         self._ka_thread = None
 
-        if WorkerComponents().get_worker_process().get_stop_type() == StopType.abort_stop or not WorkerComponents().get_conn_mgr().is_registered():
-            self.abort_connection_sync()
-            return
+        # TODO: Implement conn thread fully
+        # if WorkerComponents().get_worker_process().get_stop_type() == StopType.abort_stop or not WorkerComponents().get_conn_mgr().is_registered():
+        #     self.abort_connection_sync()
+        #     return
 
-        self._should_conn_thread_work = False
-        self._is_connected_and_authenticated = False
-        try:
-            WorkerComponents().get_conn_mgr().unregister()
-            self._connection_thread.join(SettingsLoader().get_settings().gentle_stop_timeout)
-
-        except Exception as e:
-            Logger().log_error(f"Failed to gently close connection with manager: {e}. Aborting...", LogLevel.LOW_FREQ)
-            self.abort_connection_sync()
+        # self._should_conn_thread_work = False
+        # self._is_connected_and_authenticated = False
+        # try:
+        #     WorkerComponents().get_conn_mgr().unregister()
+        #     self._connection_thread.join(SettingsLoader().get_settings().gentle_stop_timeout)
+        # except Exception as e:
+        #     Logger().log_error(f"Failed to gently close connection with manager: {e}. Aborting...", LogLevel.LOW_FREQ)
+        #     self.abort_connection_sync()
 
     # ------------------------------
     # Class interaction
@@ -237,6 +237,8 @@ class NetConnectionMgr:
     # ------------------------------
 
     def _ka_thread_func(self) -> None:
+        Logger().log_info("KA thread started", LogLevel.LOW_FREQ)
+
         execution_time = 0
 
         while self._should_ka_thread_work:
@@ -269,6 +271,8 @@ class NetConnectionMgr:
 
             self._last_ka_time_stamp = timestamp_after
             execution_time += timestamp_after - timestamp_before
+
+        Logger().log_info("KA thread stopped", LogLevel.LOW_FREQ)
 
     # TODO:
     def _register_internal(self) -> None:
