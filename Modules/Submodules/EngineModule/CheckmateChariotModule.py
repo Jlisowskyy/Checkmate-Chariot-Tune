@@ -1,11 +1,11 @@
 import os
 
 from Models.OrchestratorModels import ConfigSpecElement, UiType
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.ModuleHelpers import build_config_spec_element, get_config_prefixed_name
+from Modules.NonConfigurableModule import NonConfigurableModule
 from Utils.Helpers import run_shell_command, validate_string
 from .BaseEngineModule import BaseEngineModule, append_engine_builder
-from ...ModuleBuilder import ModuleBuilder
-from ...ModuleHelpers import build_config_spec_element, get_config_prefixed_name
-from ...NonConfigurableModule import NonConfigurableModule
 
 
 # ------------------------------
@@ -50,7 +50,6 @@ class CheckmateChariotModule(BaseEngineModule, NonConfigurableModule):
         if commit_name in json_parsed:
             validate_string(json_parsed[commit_name])
             self._build_commit = json_parsed[commit_name]
-
 
     async def _build_internal(self) -> None:
         cwd = self._build_dir

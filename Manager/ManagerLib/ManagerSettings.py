@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 
+from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Utils.Helpers import ensure_path_exists
-from .ManagerComponents import ManagerComponents
-from ...Utils.Logger import LogLevel, Logger
+from Utils.Logger import LogLevel, Logger
 
 
 class ManagerSettings(BaseModel):
@@ -12,7 +12,7 @@ class ManagerSettings(BaseModel):
     log_level: int = LogLevel.MEDIUM_FREQ
     worker_timeout: int = 10
     build_dir: str = "/tmp/Checkmate-Chariot-tune-builds/"
-    job_threads = 8
+    job_threads: int = 8
     job_failures_limit: int = 3
 
 

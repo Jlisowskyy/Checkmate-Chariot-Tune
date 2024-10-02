@@ -12,3 +12,4 @@ Worker/ProjectInfo
 Worker/Models
 log.txt
 *.log
+Tests/Regression/logs

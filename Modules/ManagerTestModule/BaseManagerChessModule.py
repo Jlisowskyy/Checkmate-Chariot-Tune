@@ -1,9 +1,9 @@
 from Models.OrchestratorModels import ConfigSpecElement, UiType
-from .BaseManagerTestModule import BaseManagerTestModule, append_test_module_builder
-from ..ModuleBuilder import ModuleBuilder
-from ..ModuleHelpers import build_submodule_spec_element
-from ..SubModuleMgr import SubModuleMgr
-from ..Submodules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule
+from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule, append_test_module_builder
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.ModuleHelpers import build_submodule_spec_element
+from Modules.SubModuleMgr import SubModuleMgr
+from Modules.Submodules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule
 
 
 # ------------------------------
@@ -58,13 +58,13 @@ class BaseManagerChessModuleBuilder(ModuleBuilder):
     def __init__(self) -> None:
         super().__init__(
             [
-            build_submodule_spec_element(
-                BaseTrainingMethodModule.SUBMODULE_TYPE,
-                "training_module",
-                "Chess training method used to find best parameters for algorithms",
-                UiType.String,
-                SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE),
-            )
+                build_submodule_spec_element(
+                    BaseTrainingMethodModule.SUBMODULE_TYPE,
+                    "training_module",
+                    "Chess training method used to find best parameters for algorithms",
+                    UiType.String,
+                    SubModuleMgr().get_all_submodules_by_type(BaseTrainingMethodModule.SUBMODULE_TYPE),
+                )
             ],
             BaseManagerChessModule.MODULE_NAME
         )
@@ -79,9 +79,10 @@ class BaseManagerChessModuleBuilder(ModuleBuilder):
     def _get_build_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
         return []
 
-    def build(self, json_config: dict[str, list[str]], name_prefix: str = "" ) -> any:
+    def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
         return BaseManagerChessModule(
             **self._build_submodules(json_config, name_prefix)
         )
+
 
 append_test_module_builder("BaseChessModule", lambda: BaseManagerChessModuleBuilder())

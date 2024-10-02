@@ -1,9 +1,9 @@
 from fastapi import APIRouter, WebSocket
 
-from ..ManagerLib.ErrorTable import ErrorTable
-from ..ManagerLib.ManagerComponents import ManagerComponents
-from ...Models.WorkerModels import *
-from ...Utils.Logger import Logger, LogLevel
+from Manager.ManagerLib.ErrorTable import ErrorTable
+from Manager.ManagerLib.ManagerComponents import ManagerComponents
+from Models.WorkerModels import *
+from Utils.Logger import Logger, LogLevel
 
 router = APIRouter()
 

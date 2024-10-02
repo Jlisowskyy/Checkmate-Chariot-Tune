@@ -174,10 +174,15 @@ class TestTask(ObjectModel):
                                                                             task_state=self._state),
                                          worker_init_config=self._worker_init,
                                          manager_init_config=self._manager_init,
-                                         worker_build_config=self._worker_build_config,
-                                         manager_build_config=self._manager_build_config,
-                                         worker_config=self._worker_config,
-                                         manager_config=self._manager_config)
+                                         worker_build_config="" if self._worker_build_config is None else json.dumps(
+                                             self._worker_build_config),
+                                         manager_build_config="" if self._manager_build_config is None else json.dumps(
+                                             self._manager_build_config),
+                                         worker_config="" if self._worker_config is None else json.dumps(
+                                             self._worker_config),
+                                         manager_config="" if self._manager_config is None else json.dumps(
+                                             self._manager_config)
+                                         )
 
     # ------------------------------
     # getters and setters
@@ -234,7 +239,6 @@ class TestTask(ObjectModel):
 
     def get_manager_build_spec_unguarded(self) -> list[ConfigSpecElement]:
         return self._manager_module_builder.get_build_spec(self._manager_init)
-
 
     # ------------------------------
     # Other methods
@@ -301,7 +305,6 @@ class TestTask(ObjectModel):
         with self.get_lock().write():
             self._worker_build_config = worker_build_config
             self._manager_build_config = manager_build_config
-
 
     def _config_submodules(self, config_json: str) -> None:
         parsed_json: dict[str, dict[str, any]] = json.loads(config_json)

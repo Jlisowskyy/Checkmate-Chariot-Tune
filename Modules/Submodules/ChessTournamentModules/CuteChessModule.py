@@ -3,12 +3,13 @@ import os.path
 from subprocess import Popen, PIPE
 
 from Models.OrchestratorModels import ConfigSpecElement
+from Modules.ModuleHelpers import get_config_prefixed_name
+from Modules.Submodules.ChessTournamentModules.BaseChessTournamentModule import BaseChessTournamentModule, \
+    append_tournament_builder, \
+    BaseChessTournamentModuleBuilder
+from Modules.Submodules.EngineModule.BaseEngineModule import BaseEngineModule
 from Utils.Helpers import run_shell_command, dump_content_to_file_on_crash
 from Utils.Logger import Logger, LogLevel
-from .BaseChessTournamentModule import BaseChessTournamentModule, append_tournament_builder, \
-    BaseChessTournamentModuleBuilder
-from ..EngineModule.BaseEngineModule import BaseEngineModule
-from ...ModuleHelpers import get_config_prefixed_name
 
 
 # ------------------------------
@@ -66,7 +67,6 @@ class CuteChessModule(BaseChessTournamentModule):
 
         exec_path = os.path.join(self._build_dir, CuteChessModule.EXEC_NAME)
         json_parsed[exec_path_name] = exec_path
-
 
     async def _load_config_internal(self, config: dict[str, any], prefix: str) -> None:
         await self._prepare_config_for_engines(config, prefix)
@@ -176,6 +176,7 @@ class CuteChessModule(BaseChessTournamentModule):
 
         dump_content_to_file_on_crash(output)
         raise Exception(f"Failed to find finished game line in output from game played with command: {command}")
+
 
 # ------------------------------
 # Builder Implementation

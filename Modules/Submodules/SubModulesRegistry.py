@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 from Modules.ModuleBuilder import ModuleBuilderFactory
 
 SubModulesBuilders: dict[str, dict[str, ModuleBuilderFactory]] = {}

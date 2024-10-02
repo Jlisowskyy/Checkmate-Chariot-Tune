@@ -2,9 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .Api import Orchestrator, Worker
-from .ManagerLib.main import startup, cleanup
-
+from Manager.Api import Orchestrator, Worker
+from Manager.ManagerLib.main import startup, cleanup
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

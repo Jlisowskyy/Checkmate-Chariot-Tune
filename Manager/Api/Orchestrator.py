@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from ...Models.OrchestratorModels import *
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
+from Models.OrchestratorModels import *
 
 router = APIRouter()
 

@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, Union
 from Utils.GlobalObj import GlobalObj
 
 if TYPE_CHECKING:
-    from .TestJobMgr import TestJobMgr
-    from .TestTaskMgr import TestTaskMgr
-    from .WorkerMgr import WorkerMgr
+    from Manager.ManagerLib.TestJobMgr import TestJobMgr
+    from Manager.ManagerLib.TestTaskMgr import TestTaskMgr
+    from Manager.ManagerLib.WorkerMgr import WorkerMgr
 
 
 class ManagerComponents(metaclass=GlobalObj):
@@ -31,9 +31,9 @@ class ManagerComponents(metaclass=GlobalObj):
     # ------------------------------
 
     def init_components(self) -> None:
-        from .TestJobMgr import TestJobMgr
-        from .TestTaskMgr import TestTaskMgr
-        from .WorkerMgr import WorkerMgr
+        from Manager.ManagerLib.TestJobMgr import TestJobMgr
+        from Manager.ManagerLib.TestTaskMgr import TestTaskMgr
+        from Manager.ManagerLib.WorkerMgr import WorkerMgr
 
         self._test_job_mgr = TestJobMgr()
         self._test_task_mgr = TestTaskMgr()

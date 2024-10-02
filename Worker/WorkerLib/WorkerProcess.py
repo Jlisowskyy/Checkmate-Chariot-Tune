@@ -7,9 +7,9 @@ from typing import Callable
 from Utils.Helpers import get_pretty_time_spent_string_from_seconds, convert_ns_to_s
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
-from .CliTranslator import CliTranslator
-from .LockFile import LockFile, LOCK_FILE_PATH
-from .WorkerComponents import StopType
+from Worker.WorkerLib.CliTranslator import CliTranslator
+from Worker.WorkerLib.LockFile import LockFile, LOCK_FILE_PATH
+from Worker.WorkerLib.WorkerComponents import StopType
 
 
 class WorkerProcess:

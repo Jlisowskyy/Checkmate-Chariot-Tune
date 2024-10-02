@@ -1,10 +1,10 @@
+import inspect
 import os
 import time
 from datetime import datetime
 from enum import IntEnum
 from threading import Lock, Thread, get_ident
 from typing import TextIO
-import inspect  # Import inspect to get the stack frame
 
 from .GlobalObj import GlobalObj
 
@@ -129,13 +129,19 @@ class Logger(metaclass=GlobalObj):
                 if len(self._log_que) == 0:
                     continue
 
-                full_msg = "\n".join(self._log_que) + "\n"
-                self._log_que.clear()
+                self._log_buffer_unlocked()
 
-                if self._log_stdout:
-                    print(full_msg)
+        with self._lock:
+            self._log_buffer_unlocked()
 
-                self._log_file.write(full_msg)
+    def _log_buffer_unlocked(self):
+        full_msg = "\n".join(self._log_que) + "\n"
+        self._log_que.clear()
 
-                self._log_file.flush()
-                os.fsync(self._log_file.fileno())
+        if self._log_stdout:
+            print(full_msg)
+
+        self._log_file.write(full_msg)
+
+        self._log_file.flush()
+        os.fsync(self._log_file.fileno())

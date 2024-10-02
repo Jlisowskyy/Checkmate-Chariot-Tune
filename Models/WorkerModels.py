@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from .GlobalModels import CommandResult
+from Models.GlobalModels import CommandResult
 
 
 class WorkerModel(BaseModel):

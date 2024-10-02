@@ -1,7 +1,8 @@
 from Models.OrchestratorModels import ConfigSpecElement
-from .BaseTrainingMethodModule import BaseTrainingMethodModule, append_test_module_builder
-from ...ModuleBuilder import ModuleBuilder
-from ...NonBuildableModule import NonBuildableModule
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.NonBuildableModule import NonBuildableModule
+from Modules.Submodules.TrainingMethodsModules.BaseTrainingMethodModule import BaseTrainingMethodModule, \
+    append_test_module_builder
 
 
 # ------------------------------

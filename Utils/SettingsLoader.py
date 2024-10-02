@@ -5,8 +5,8 @@ from typing import Type, Callable
 
 from pydantic import BaseModel
 
-from .GlobalObj import GlobalObj
-from .Logger import Logger, LogLevel
+from Utils.GlobalObj import GlobalObj
+from Utils.Logger import Logger, LogLevel
 
 
 class SettingsLoader(metaclass=GlobalObj):

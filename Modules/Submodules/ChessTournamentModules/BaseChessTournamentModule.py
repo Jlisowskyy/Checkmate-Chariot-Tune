@@ -2,12 +2,12 @@ from abc import abstractmethod, ABC
 
 from Models.OrchestratorModels import ConfigSpecElement, UiType
 from Modules.BuildableModule import BuildableModule
-from Utils.Logger import Logger, LogLevel
-from ..EngineModule.BaseEngineModule import BaseEngineModule
-from ..SubModulesRegistry import append_submodule_builders
-from ...ModuleBuilder import ModuleBuilderFactory, ModuleBuilder
-from ...ModuleHelpers import build_config_spec_element, get_config_prefixed_name, \
+from Modules.ModuleBuilder import ModuleBuilderFactory, ModuleBuilder
+from Modules.ModuleHelpers import build_config_spec_element, get_config_prefixed_name, \
     build_submodule_spec_element
+from Modules.Submodules.EngineModule.BaseEngineModule import BaseEngineModule
+from Modules.Submodules.SubModulesRegistry import append_submodule_builders
+from Utils.Logger import Logger, LogLevel
 
 
 # ------------------------------
@@ -313,6 +313,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
 
 TournamentFactoryMethods: dict[str, ModuleBuilderFactory] = {}
 append_submodule_builders("ChessTournament", TournamentFactoryMethods)
+
 
 def append_tournament_builder(tournament: str,
                               builder: ModuleBuilderFactory) -> None:

@@ -4,20 +4,21 @@ from threading import Thread, Lock, Condition
 from fastapi import WebSocket
 from pydantic import BaseModel
 
+from Manager.ManagerLib.ErrorTable import ErrorTable
+from Manager.ManagerLib.Worker import Worker
 from Models.GlobalModels import CommandResult
 from Models.WorkerModels import WorkerAuth
+from Models.WorkerModels import WorkerModel
+from ProjectInfo.ProjectInfo import ProjectInfoInstance
 from Utils.Helpers import convert_ns_to_s, convert_s_to_ns
-from .ErrorTable import ErrorTable
-from .Worker import Worker
-from ...Models.WorkerModels import WorkerModel
-from ...ProjectInfo.ProjectInfo import ProjectInfoInstance
-from ...Utils.Logger import Logger, LogLevel
-from ...Utils.SettingsLoader import SettingsLoader
+from Utils.Logger import Logger, LogLevel
+from Utils.RWLock import ObjectModel
+from Utils.SettingsLoader import SettingsLoader
 
-MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_bu1ild_config("MIN_WORKER_VERSION"))
+MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_build_config("MIN_WORKER_VERSION"))
 
 
-class WorkerMgr:
+class WorkerMgr(ObjectModel):
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -37,6 +38,7 @@ class WorkerMgr:
     # ------------------------------
 
     def __init__(self):
+        super().__init__()
         self._shouldWork = True
         self._workers = dict[str, Worker]()
 

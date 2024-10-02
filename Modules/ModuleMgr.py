@@ -1,8 +1,8 @@
+from Modules.ManagerTestModule import *
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.WorkerTestModule import *
 from Utils.GlobalObj import GlobalObj
 from Utils.Logger import Logger, LogLevel
-from .ManagerTestModule import *
-from .ModuleBuilder import ModuleBuilder
-from .WorkerTestModule import *
 
 
 class ModuleMgr(metaclass=GlobalObj):

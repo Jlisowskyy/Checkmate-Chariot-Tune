@@ -2,8 +2,8 @@ from Models.WorkerModels import WorkerModel
 from ProjectInfo.ProjectInfo import ProjectInfoInstance
 from Utils.Logger import Logger, LogLevel
 from Utils.SettingsLoader import SettingsLoader
-from .BaseCli import BaseCli, CommandCli, CommandType
-from .WorkerComponents import WorkerComponents, BlockType
+from Worker.WorkerLib.BaseCli import BaseCli, CommandCli, CommandType
+from Worker.WorkerLib.WorkerComponents import WorkerComponents, BlockType
 
 
 class CliTranslator(BaseCli):

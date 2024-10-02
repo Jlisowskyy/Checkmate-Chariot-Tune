@@ -2,7 +2,7 @@ import os
 import subprocess
 from datetime import datetime
 
-from .Logger import Logger, LogLevel
+from Utils.Logger import Logger, LogLevel
 
 
 def get_pretty_time_spent_string_from_seconds(time_spent: float) -> str:

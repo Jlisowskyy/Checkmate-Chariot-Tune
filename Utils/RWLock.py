@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from threading import Lock
+from typing import Generator
 
 from Utils.Logger import Logger, LogLevel
 
@@ -30,22 +31,26 @@ class RWLock:
     # Class interaction
     # ------------------------------
 
-    def get_read(self):
+    def get_read(self) -> None:
+        should_lock = False
+
         with self._access_lock:
             if self._read_counter == 0:
-                self._obj_lock.acquire()
-
+                should_lock = True
             self._read_counter += 1
 
-    def get_write(self):
+        if should_lock:
+            self._obj_lock.acquire()
+
+    def get_write(self) -> None:
         with self._access_lock:
             self._obj_lock.acquire()
 
-    def release_write(self):
+    def release_write(self) -> None:
         with self._access_lock:
             self._obj_lock.release()
 
-    def release_read(self):
+    def release_read(self) -> None:
         with self._access_lock:
             self._read_counter -= 1
 
@@ -53,18 +58,19 @@ class RWLock:
                 self._obj_lock.release()
 
     @contextmanager
-    def read(self):
+    def read(self) -> Generator[None, None, None]:
         self.get_read()
 
         try:
             yield
         except Exception as e:
             Logger().log_error(f"RW lock caught error: {e}", LogLevel.HIGH_FREQ)
+            raise e
         finally:
             self.release_read()
 
     @contextmanager
-    def write(self):
+    def write(self) -> Generator[None, None, None]:
         self.get_write()
 
         try:
@@ -115,7 +121,6 @@ class ObjectModel:
     def increment_gen_num_locked(self) -> None:
         with self._lock.write():
             self.increment_gen_num_unlocked()
-
 
     @contextmanager
     def perform_operation(self):

@@ -1,6 +1,6 @@
 from enum import Enum, IntEnum
 
-from .GlobalModels import *
+from Models.GlobalModels import *
 
 
 class UiType(Enum):
@@ -99,10 +99,10 @@ class TestTaskFullQuery(BaseModel):
     minimal_query: TestTaskMinimalQuery
     worker_init_config: dict[str, list[str]] | None
     manager_init_config: dict[str, list[str]] | None
-    worker_build_config: dict[str, any] | None
-    manager_build_config: dict[str, any] | None
-    worker_config: dict[str, any] | None
-    manager_config: dict[str, any] | None
+    worker_build_config: str
+    manager_build_config: str
+    worker_config: str
+    manager_config: str
 
 
 # OLD MODELS

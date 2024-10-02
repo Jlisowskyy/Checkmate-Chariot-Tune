@@ -5,8 +5,8 @@ import time
 from pathlib import Path
 from time import sleep
 
-from .CliTranslator import *
-from .LockFile import LockFile, LOCK_FILE_PATH
+from Worker.WorkerLib.CliTranslator import *
+from Worker.WorkerLib.LockFile import LockFile, LOCK_FILE_PATH
 
 
 class Cli(BaseCli):

@@ -1,6 +1,6 @@
 from Utils.Logger import Logger, LogLevel
-from .TestTask import TestTask
-from .WorkerComponents import StopType, BlockType, WorkerComponents
+from Worker.WorkerLib.TestTask import TestTask
+from Worker.WorkerLib.WorkerComponents import StopType, BlockType, WorkerComponents
 
 
 class TestJobMgr:

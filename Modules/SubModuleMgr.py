@@ -1,6 +1,6 @@
+from Modules.ModuleBuilder import ModuleBuilder
+from Modules.Submodules import *
 from Utils.GlobalObj import GlobalObj
-from .ModuleBuilder import ModuleBuilder
-from .Submodules import *
 
 
 class SubModuleMgr(metaclass=GlobalObj):

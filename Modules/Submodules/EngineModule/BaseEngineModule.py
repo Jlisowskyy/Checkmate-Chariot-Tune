@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 
 from Modules.BuildableModule import BuildableModule
-from ..SubModulesRegistry import append_submodule_builders
-from ...ModuleBuilder import ModuleBuilder, ModuleBuilderFactory
+from Modules.ModuleBuilder import ModuleBuilderFactory
+from Modules.Submodules.SubModulesRegistry import append_submodule_builders
 
 
 class BaseEngineModule(BuildableModule, ABC):

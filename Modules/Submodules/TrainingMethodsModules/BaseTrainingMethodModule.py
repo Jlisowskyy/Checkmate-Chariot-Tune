@@ -1,8 +1,8 @@
 from abc import abstractmethod, ABC
 
-from ..SubModulesRegistry import append_submodule_builders
-from ...Module import Module
-from ...ModuleBuilder import ModuleBuilderFactory
+from Modules.Module import Module
+from Modules.ModuleBuilder import ModuleBuilderFactory
+from Modules.Submodules.SubModulesRegistry import append_submodule_builders
 
 
 class BaseTrainingMethodModule(Module, ABC):

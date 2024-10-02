@@ -10,7 +10,7 @@ from Utils.RWLock import ObjectModel
 from Utils.SettingsLoader import SettingsLoader
 
 
-class TestJob():
+class TestJob:
     # ------------------------------
     # Class fields
     # ------------------------------
@@ -83,11 +83,11 @@ class TestJobMgr(ObjectModel):
 
     def __init__(self) -> None:
         super().__init__()
-        self._startup_worker_threads(SettingsLoader().get_settings().job_threads)
         self._threads = {}
         self._cv = Condition()
         self._job_queues = {state: deque() for state in QUEUEABLE_STATES}
 
+        self._startup_worker_threads(SettingsLoader().get_settings().job_threads)
         Logger().log_info("Test Job Manager correctly initialized", LogLevel.LOW_FREQ)
 
     def destroy(self) -> None:
@@ -157,7 +157,8 @@ class TestJobMgr(ObjectModel):
         self.signal_threads()
 
     def signal_threads(self) -> None:
-        self._cv.notify_all()
+        with self._cv:
+            self._cv.notify_all()
 
     # ------------------------------
     # Private methods
@@ -169,6 +170,8 @@ class TestJobMgr(ObjectModel):
         with self.get_lock().write():
             for i in range(thread_count):
                 self._register_thread_unlocked()
+
+        Logger().log_info(f"Finished starting {thread_count} worker threads", LogLevel.LOW_FREQ)
 
     def _register_thread_unlocked(self) -> None:
         with self.thread_counter_lock:
@@ -196,12 +199,17 @@ class TestJobMgr(ObjectModel):
             for tid in threads_to_stop:
                 self._mark_for_stop_unlocked(tid)
 
+            self.signal_threads()
+
             for tid in threads_to_stop:
                 self._unregister_thread_unlocked(tid)
 
     def _get_next_request(self) -> TestJobRequest | None:
         # Start from completed jobs and go back to prepared jobs
-        for state in WORKABLE_STATES.reverse():
+        reverse = WORKABLE_STATES
+        reverse.reverse()
+
+        for state in reverse:
             with self.get_lock().write():
                 if len(self._job_queues[state]) > 0:
                     return self._job_queues[state].popleft()
@@ -236,4 +244,5 @@ class TestJobMgr(ObjectModel):
             if not thread_info.cond:
                 break
 
-            self._cv.acquire()
+            with self._cv:
+                self._cv.wait()

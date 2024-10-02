@@ -24,3 +24,5 @@ build config default:
 
 config:
 - process_memory_limit
+
+ADD CLI FAILURES ON MSGS
