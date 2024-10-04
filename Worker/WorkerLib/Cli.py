@@ -168,4 +168,16 @@ class Cli(BaseCli):
               )
         return rv
 
+    def _version(self, index: int) -> int:
+        ProjectInfoInstance.display_info("CLI")
+        return index
+
+    @staticmethod
+    def _version_help() -> str:
+        rv = ("syntax: --version\n\t"
+              "Command will display information about the CLI version"
+              )
+        return rv
+
     BaseCli.add_command(CommandCli(CommandType.FRONTEND, "deploy", _deploy, _deploy_help))
+    BaseCli.add_command(CommandCli(CommandType.FRONTEND, "version", _version, _version_help))

@@ -14,8 +14,6 @@ def main_cli(args: list[str]) -> int:
     Logger("./cli.log", False, LogLevel.MEDIUM_FREQ)
     SettingsLoader(WorkerSettings, SETTINGS_PATH)
 
-    ProjectInfoInstance.display_info("CLI")
-
     cli = Cli()
     rv = cli.parse_args(args)
 

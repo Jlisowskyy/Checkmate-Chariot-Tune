@@ -7,3 +7,8 @@ cd "$SCRIPT_DIR" || exit 1
 python -m venv ../.venv
 source ../.venv/bin/activate
 pip install -r requirements.txt
+
+cp autocomplete.bash /etc/bash_completion.d/wcli
+chmod +x /etc/bash_completion.d/wcli
+
+echo "alias wcli='${SCRIPT_DIR}/run_cli.sh'" >> ~/.bashrc

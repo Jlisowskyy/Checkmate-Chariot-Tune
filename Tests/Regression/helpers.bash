@@ -6,6 +6,7 @@ declare PROJECT_DIR
 declare WORKER_PID
 declare LOG_DIR
 declare LOG_FILE
+declare WORKER_LOCK_PATH
 
 SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 cd "$SCRIPT_DIR" || exit 1
@@ -18,6 +19,8 @@ LOG_DIR="${PROJECT_DIR}/Tests/Regression/logs"
 mkdir "${LOG_DIR}" 2>/dev/null
 
 LOG_FILE="${LOG_DIR}/runner_$(date +"%Y-%m-%d_%H-%M-%S").log"
+
+WORKER_LOCK_PATH="/tmp/Checkmate-Chariot-Worker.lock"
 
 log_message() {
   echo "$1" >> "${LOG_FILE}"
@@ -96,6 +99,7 @@ wait_for_process_death() {
   pid=$1
   max_duration=${2:-60}
 
+  pretty_info "Waiting for process: ${pid} to die"
   duration=0
   while [ "${duration}" -lt "${max_duration}" ]; do
     if pgrep -P "${pid}" > /dev/null; then
@@ -107,35 +111,34 @@ wait_for_process_death() {
   done
 
   if [ "${duration}" -ge "${max_duration}" ]; then
-    pretty_warning "Process did not die in ${max_duration} seconds"
-    kill -9 "${pid}"
+    pretty_warning "Process: ${pid} did not die in ${max_duration} seconds"
+    pkill -SIGKILL -g "${pid}"
   fi
 
-  pretty_success "Process died"
+  pretty_success "Process: ${pid} died"
 }
 
 cleanup() {
   pretty_info "Cleaning up the environment"
 
-  pkill -P $$
-
-  if [ -e "/tmp/Checkmate-Chariot-Worker.lock" ]; then
+  if [ -n "${WORKER_PID}" ]; then
     pretty_info "Stopping worker"
 
-    pid=$(cat /tmp/Checkmate-Chariot-Worker.lock)
-
     run_cli --stop_worker
-    wait_for_process_death "${pid}" 100
+    wait_for_process_death "${WORKER_PID}" 100
 
-    rm -f /tmp/Checkmate-Chariot-Worker.lock
+    rm -f "${WORKER_LOCK_PATH}"
   fi
 
   if [ -n "${MANAGER_PID}" ]; then
     pretty_info "Stopping manager"
 
-    kill -s SIGINT "${MANAGER_PID}"
-    wait_for_process_death "${MANAGER_PID}"
+    kill -s SIGINT -"${MANAGER_PID}"
+    wait_for_process_death "${MANAGER_PID}" 100
   fi
+
+  pretty_info "Killing any remaining processes"
+  pkill -P $$
 
   pretty_success "Environment cleaned up successfully"
 }
@@ -154,16 +157,16 @@ validate_state() {
     exit $result
   fi
 
-  if [ ! -e "/tmp/Checkmate-Chariot-Worker.lock" ]; then
+  if [ ! -e "${WORKER_LOCK_PATH}" ]; then
     pretty_error "Worker did not start"
     exit 1
   fi
 
-  worker_pid=$(cat /tmp/Checkmate-Chariot-Worker.lock)
+  worker_pid=$(cat "${WORKER_LOCK_PATH}")
+  pretty_info "Validating worker state with PID: ${worker_pid}"
 
   if ! pgrep -P "${worker_pid}" > /dev/null; then
     pretty_error "Worker died, but lock file still exists"
-    rm -f /tmp/Checkmate-Chariot-Worker.lock
     exit 1
   fi
 
@@ -184,17 +187,16 @@ init_env() {
   pretty_info "Initializing the environment"
 
   trap cleanup EXIT
-  trap cleanup SIGINT
-  trap cleanup SIGTERM
-  trap cleanup SIGQUIT
 
   cd "${PROJECT_DIR}" || exit 1
   source ".venv/bin/activate"
 
   # Start Manager
   pretty_info "Starting Manager"
-  ./Manager/run.sh &
+  setsid ./Manager/run.sh &
   MANAGER_PID=$!
+
+  pretty_info "Started Manager with PID: ${MANAGER_PID}"
   pretty_sleep 5
 
   # Start Worker
@@ -202,8 +204,10 @@ init_env() {
   run_cli --deploy
   pretty_sleep 5
 
+  WORKER_PID=$(cat "${WORKER_LOCK_PATH}")
+  pretty_info "Started Worker with PID: ${WORKER_PID}"
+
   validate_state
-  WORKER_PID=$(cat /tmp/Checkmate-Chariot-Worker.lock)
 
   pretty_success "Environment initialized successfully"
 }
