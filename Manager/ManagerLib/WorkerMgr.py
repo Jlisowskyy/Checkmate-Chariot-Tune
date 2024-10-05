@@ -12,13 +12,13 @@ from Models.WorkerModels import WorkerModel
 from ProjectInfo.ProjectInfo import ProjectInfoInstance
 from Utils.Helpers import convert_ns_to_s, convert_s_to_ns
 from Utils.Logger import Logger, LogLevel
-from Utils.RWLock import ObjectModel
+from Utils.RWLock import MgrModel
 from Utils.SettingsLoader import SettingsLoader
 
 MIN_WORKER_VERSION = ProjectInfoInstance.get_version(ProjectInfoInstance.get_build_config("MIN_WORKER_VERSION"))
 
 
-class WorkerMgr(ObjectModel):
+class WorkerMgr(MgrModel):
     # ------------------------------
     # Class fields
     # ------------------------------

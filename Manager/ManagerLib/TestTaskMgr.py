@@ -13,7 +13,7 @@ from Modules.ModuleMgr import ModuleMgr
 from Modules.WorkerTestModule.BaseWorkerTestModule import BaseWorkerTestModule
 from Utils.Helpers import validate_dict_str_list_str, validate_dict_str
 from Utils.Logger import Logger, LogLevel
-from Utils.RWLock import ObjectModel
+from Utils.RWLock import ObjectModel, MgrModel
 from Utils.SettingsLoader import SettingsLoader
 
 
@@ -346,7 +346,7 @@ class TestTask(ObjectModel):
         Logger().log_info(f"Task {self._task_id} state changed: {old_state} -> {new_state}", LogLevel.MEDIUM_FREQ)
 
 
-class TestTaskMgr(ObjectModel):
+class TestTaskMgr(MgrModel):
     # ------------------------------
     # Class fields
     # ------------------------------

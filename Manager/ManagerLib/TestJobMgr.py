@@ -6,7 +6,7 @@ from typing import Deque
 from Manager.ManagerLib.TestJob import TestJobRequest
 from Models.OrchestratorModels import JobState, WORKABLE_STATES, QUEUEABLE_STATES
 from Utils.Logger import Logger, LogLevel
-from Utils.RWLock import ObjectModel
+from Utils.RWLock import MgrModel
 from Utils.SettingsLoader import SettingsLoader
 
 
@@ -49,7 +49,7 @@ class TestJob:
     # ------------------------------
 
 
-class TestJobMgr(ObjectModel):
+class TestJobMgr(MgrModel):
     # ------------------------------
     # Internal objects
     # ------------------------------
