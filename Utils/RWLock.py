@@ -32,30 +32,18 @@ class RWLock:
     # ------------------------------
 
     def get_read(self) -> None:
-        should_lock = False
-
-        with self._access_lock:
-            if self._read_counter == 0:
-                should_lock = True
-            self._read_counter += 1
-
-        if should_lock:
+        if self._increment_read_counter() == 1:
             self._obj_lock.acquire()
 
     def get_write(self) -> None:
-        with self._access_lock:
-            self._obj_lock.acquire()
+        self._obj_lock.acquire()
 
     def release_write(self) -> None:
-        with self._access_lock:
-            self._obj_lock.release()
+        self._obj_lock.release()
 
     def release_read(self) -> None:
-        with self._access_lock:
-            self._read_counter -= 1
-
-            if self._read_counter == 0:
-                self._obj_lock.release()
+        if self._decrement_read_counter() == 0:
+            self._obj_lock.release()
 
     @contextmanager
     def read(self) -> Generator[None, None, None]:
@@ -80,6 +68,24 @@ class RWLock:
             raise e
         finally:
             self.release_write()
+
+    # ------------------------------
+    # Private methods
+    # ------------------------------
+
+    def _get_read_counter(self) -> int:
+        with self._access_lock:
+            return self._read_counter
+
+    def _increment_read_counter(self) -> int:
+        with self._access_lock:
+            self._read_counter += 1
+            return self._read_counter
+
+    def _decrement_read_counter(self) -> int:
+        with self._access_lock:
+            self._read_counter -= 1
+            return self._read_counter
 
 
 class ObjectModel:

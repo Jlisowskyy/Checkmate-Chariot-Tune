@@ -1,17 +1,17 @@
 from enum import Enum, IntEnum
+from typing import List, Dict
 
 from Models.GlobalModels import *
 
-
 class UiType(Enum):
-    StringList = list[str]
+    StringList = List[str]
     String = str
-    StringStringDict = dict[str, str]
-    StringIntPairDict = dict[str, int]
-    StringDictStringStringDict = dict[str, dict[str, str]]
+    StringStringDict = Dict[str, str]
+    StringIntPairDict = Dict[str, int]
+    StringDictStringStringDict = Dict[str, Dict[str, str]]
 
 
-default_value_type = str | list[str] | dict[str, str] | dict[str, int] | None
+default_value_type = str | List[str] | Dict[str, str] | Dict[str, int] | None
 
 
 class TaskState(IntEnum):
@@ -39,17 +39,15 @@ class JobState(IntEnum):
 WORKABLE_STATES = [JobState.PREPARED, JobState.COMPLETED]
 QUEUEABLE_STATES = [JobState.PREPARED, JobState.INFLIGHT, JobState.COMPLETED, JobState.FAILED]
 
-# NEW MODELS
-
 class ConfigSpecElement(BaseModel):
     # ------------------------------
     # Class fields
     # ------------------------------
 
     name: str
-    ui_type: UiType
+    ui_type: str
     description: str
-    default_value: default_value_type
+    default_value: str | List[str] | Dict[str, str] | Dict[str, int] | None
     is_optional: bool
 
 
@@ -88,34 +86,19 @@ class TestTaskMinimalQuery(BaseModel):
 
 
 class TaskMinimalQueryAllResponse(BaseModel):
-    queries: list[TestTaskMinimalQuery]
+    queries: List[TestTaskMinimalQuery]
 
 class TaskConfigSpecResponse(BaseModel):
     result: str
-    worker_config_spec: list[ConfigSpecElement]
-    manager_config_spec: list[ConfigSpecElement]
+    worker_config_spec: List[ConfigSpecElement]
+    manager_config_spec: List[ConfigSpecElement]
 
 class TestTaskFullQuery(BaseModel):
     minimal_query: TestTaskMinimalQuery
-    worker_init_config: dict[str, list[str]] | None
-    manager_init_config: dict[str, list[str]] | None
+    worker_init_config: Dict[str, List[str]] | None
+    manager_init_config: Dict[str, List[str]] | None
     worker_build_config: str
     manager_build_config: str
     worker_config: str
     manager_config: str
-
-
-# OLD MODELS
-
-class TuneParameter(BaseModel):
-    name: str
-    min: int
-    max: int
-
-
-class TestDescription(BaseModel):
-    name: str
-    parameters: list[TuneParameter]
-    commit: str
-    passwordHash: str
 

@@ -98,7 +98,7 @@ class ModuleBuilder(ABC):
             if submodule_full_path in json_config:
                 module_names = json_config[submodule_full_path]
 
-                validate_submodule_spec_args(module_names, submodule.ui_type)
+                validate_submodule_spec_args(module_names, UiType[submodule.ui_type])
 
                 submodule_type = extract_submodule_type(submodule.name)
                 for module_name in module_names:
@@ -130,10 +130,11 @@ class ModuleBuilder(ABC):
             builder: 'ModuleBuilder',
             config_spec: ConfigSpecElement
     ) -> None:
-        if config_spec.ui_type == UiType.String:
+        ui_type = UiType[config_spec.ui_type]
+        if ui_type == UiType.String:
             modules.update(
                 {extract_submodule_variable_name(config_spec.name): builder.build(json_config, name_prefix)})
-        elif config_spec.ui_type == UiType.StringList:
+        elif ui_type == UiType.StringList:
             if extract_submodule_variable_name(config_spec.name) not in modules:
                 modules[extract_submodule_variable_name(config_spec.name)] = []
 
