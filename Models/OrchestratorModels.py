@@ -102,3 +102,5 @@ class TestTaskFullQuery(BaseModel):
     worker_config: str
     manager_config: str
 
+class ModuleQueryResponse(BaseModel):
+    modules: List[str]

@@ -1,9 +1,11 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from Manager.Api import Orchestrator, Worker
-from Manager.ManagerLib.main import startup, cleanup
+from Manager.ManagerLib.StartupProcedures import startup, cleanup
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,3 +21,11 @@ async def lifespan(app: FastAPI):
 Manager = FastAPI(lifespan=lifespan)
 Manager.include_router(Orchestrator.router)
 Manager.include_router(Worker.router)
+
+Manager.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.OrchestratorModels import *
+from Modules.ModuleMgr import ModuleMgr
 
 router = APIRouter()
 
@@ -52,6 +53,12 @@ async def query_task_build_spec(task: TaskOperationRequest) -> TaskConfigSpecRes
 @router.post("/orchestrator/task/query/full", tags=["orchestrator"])
 async def query_task_full(task: TaskOperationRequest) -> TestTaskFullQuery:
     return ManagerComponents().get_test_task_mgr().api_get_task_query(task)
+
+@router.get("/orchestrator/modules/get/available", tags=["orchestrator"])
+async def query_available_modules() -> ModuleQueryResponse:
+    modules = ModuleMgr().get_all_modules()
+
+    return ModuleQueryResponse(modules=modules)
 
 # ------------------------------
 # Worker API
