@@ -1,19 +1,7 @@
 from fastapi.testclient import TestClient
-from httpx import Response
 
 from Manager.manager_main import Manager
-
-
-def validate_post_getter(client: TestClient, url: str) -> Response:
-    response = client.post(url)
-    assert response.status_code == 200
-    return response
-
-
-def validate_get_getter(client: TestClient, url: str) -> Response:
-    response = client.get(url)
-    assert response.status_code == 200
-    return response
+from Tests.ManagerPyTest.test_validators import validate_post_getter, validate_get_getter
 
 
 def test_getters() -> None:
