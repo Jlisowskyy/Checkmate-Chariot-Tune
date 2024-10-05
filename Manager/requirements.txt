@@ -2,3 +2,4 @@ fastapi[standard]
 websockets
 httpx
 pydantic>=2.9.2
+pytest

@@ -1,11 +1,26 @@
 #!/bin/bash
 
-SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-cd "$SCRIPT_DIR" || exit 1
+declare RUNNER_SCRIPT_DIR
+declare RUNNER_VENV_DIR
 
-source Regression/helpers.bash
-source Regression/base_regression.bash
+RUNNER_SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-init_env
-run_test "base_regression_main"
-cleanup
+# SCRIPT PARENT DIR
+RUNNER_VENV_DIR="$(dirname "${RUNNER_SCRIPT_DIR}")/.venv/bin/activate"
+
+source "${RUNNER_SCRIPT_DIR}/Regression/helpers.bash"
+source "${RUNNER_SCRIPT_DIR}/Regression/base_regression.bash"
+
+# run unit tests
+helpers_pretty_chapter "Unit Test (PyTest) - Manager"
+
+source "${RUNNER_VENV_DIR}"
+pytest
+
+# run regression
+
+helpers_pretty_chapter "Regression tests"
+
+helpers_init_env
+helpers_run_test "base_regression_main"
+helpers_cleanup
