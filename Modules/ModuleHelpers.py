@@ -51,7 +51,7 @@ def build_submodule_spec_element(
         ui_type: UiType,
         default_value: list[str]
 ) -> ConfigSpecElement:
-    if ui_type != UiType.String or UiType.StringList:
+    if ui_type != UiType.String and ui_type!= UiType.StringList:
         raise ValueError(f"Submodule spec element must have UiType.String or UiType.StringList, got {ui_type}")
 
     validate_list_str(default_value)

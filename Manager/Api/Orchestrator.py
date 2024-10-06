@@ -11,7 +11,7 @@ router = APIRouter()
 # ------------------------------
 
 @router.post("/orchestrator/task/create", tags=["orchestrator"])
-async def create_task(task: TaskCreateRequest) -> CommandResult:
+async def create_task(task: TaskCreateRequest) -> TaskCreateResult:
     return ManagerComponents().get_test_task_mgr().api_create_task(task)
 
 @router.post("/orchestrator/task/stop", tags=["orchestrator"])
@@ -34,7 +34,7 @@ async def reconfig_task(task: TaskOperationRequest) -> CommandResult:
 async def schedule_task(task: TaskOperationRequest) -> CommandResult:
     return ManagerComponents().get_test_task_mgr().api_schedule_task(task)
 
-@router.post("orchestrator/task/init", tags=["orchestrator"])
+@router.post("/orchestrator/task/init", tags=["orchestrator"])
 async def init_task(task: TaskOpRequestWithConfig) -> TaskInitResponse:
     return ManagerComponents().get_test_task_mgr().api_init_task(task)
 

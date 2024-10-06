@@ -210,39 +210,6 @@ class ExtendedRwLockWrapper(RWLockWrapper):
     def __init__(self) -> None:
         super().__init__(ExtendedRWLock())
 
-
-class OperableModel:
-    # ------------------------------
-    # Class fields
-    # ------------------------------
-
-    _op_lock: Lock
-
-    # ------------------------------
-    # Class creation
-    # ------------------------------
-
-    def __init__(self) -> None:
-        self._op_lock = Lock()
-
-    # ------------------------------
-    # Class interaction
-    # ------------------------------
-
-    @contextmanager
-    def perform_operation(self):
-        if not self._op_lock.acquire(blocking=False):
-            raise ValueError("Operation already in progress")
-
-        try:
-            yield
-        except Exception as e:
-            Logger().log_error(f"Exception caught during operation: {e}", LogLevel.HIGH_FREQ)
-            raise e
-        finally:
-            self._op_lock.release()
-
-
 class RWLockModel:
     # ------------------------------
     # Class fields
@@ -265,7 +232,39 @@ class RWLockModel:
         return self._rw_lock
 
 
-class MgrModel(RWLockModel, OperableModel):
+class OperableModel(RWLockModel):
+    # ------------------------------
+    # Class fields
+    # ------------------------------
+
+    _op_lock: Lock
+
+    # ------------------------------
+    # Class creation
+    # ------------------------------
+
+    def __init__(self, rw_lock_wrapper: RWLockWrapper) -> None:
+        super().__init__(rw_lock_wrapper)
+        self._op_lock = Lock()
+
+    # ------------------------------
+    # Class interaction
+    # ------------------------------
+
+    @contextmanager
+    def perform_operation_non_blocking(self):
+        if not self._op_lock.acquire(blocking=False):
+            raise ValueError("Operation already in progress")
+
+        try:
+            yield
+        except Exception as e:
+            Logger().log_error(f"Exception caught during operation: {e}", LogLevel.HIGH_FREQ)
+            raise e
+        finally:
+            self._op_lock.release()
+
+class MgrModel(OperableModel):
     # ------------------------------
     # Class creation
     # ------------------------------
@@ -274,7 +273,7 @@ class MgrModel(RWLockModel, OperableModel):
         super().__init__(ExtendedRwLockWrapper())
 
 
-class ObjectModel(RWLockModel, OperableModel):
+class ObjectModel(OperableModel):
     # ------------------------------
     # Class fields
     # ------------------------------

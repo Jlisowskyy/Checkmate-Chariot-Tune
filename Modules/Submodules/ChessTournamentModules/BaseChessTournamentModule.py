@@ -312,7 +312,7 @@ class BaseChessTournamentModuleBuilder(ModuleBuilder, ABC):
 # ------------------------------
 
 TournamentFactoryMethods: dict[str, ModuleBuilderFactory] = {}
-append_submodule_builders("ChessTournament", TournamentFactoryMethods)
+append_submodule_builders(BaseChessTournamentModule.SUBMODULE_TYPE, TournamentFactoryMethods)
 
 
 def append_tournament_builder(tournament: str,

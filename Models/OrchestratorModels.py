@@ -94,6 +94,7 @@ class TaskConfigSpecResponse(BaseModel):
     manager_config_spec: List[ConfigSpecElement]
 
 class TestTaskFullQuery(BaseModel):
+    result: str
     minimal_query: TestTaskMinimalQuery
     worker_init_config: Dict[str, List[str]] | None
     manager_init_config: Dict[str, List[str]] | None

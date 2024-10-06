@@ -6,7 +6,7 @@ from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.GlobalModels import CommandResult
 from Models.OrchestratorModels import TaskCreateRequest, TaskOperationRequest, TaskOpRequestWithConfig, \
     ConfigSpecElement, TaskInitResponse, TaskState, TaskMinimalQueryAllResponse, TestTaskMinimalQuery, \
-    TaskConfigSpecResponse, TestTaskFullQuery
+    TaskConfigSpecResponse, TestTaskFullQuery, TaskCreateResult
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
 from Modules.ModuleBuilder import ModuleBuilder
 from Modules.ModuleMgr import ModuleMgr
@@ -99,7 +99,7 @@ class TestTask(ObjectModel):
         worker_init = submodules_parsed["worker_init"]
         manager_init = submodules_parsed["manager_init"]
 
-        with self.perform_operation():
+        with self.perform_operation_non_blocking():
             with self.get_lock().read():
                 if self._state != TaskState.UNINITIATED:
                     raise ValueError(f"Task {self._task_id} already initiated")
@@ -118,7 +118,7 @@ class TestTask(ObjectModel):
         return [lacking_worker_module, lacking_manager_module]
 
     def try_to_build(self, config_json: str) -> None:
-        with self.perform_operation():
+        with self.perform_operation_non_blocking():
             with self.get_lock().read():
                 if self._state != TaskState.INITIATED:
                     raise ValueError(f"Task {self._task_id} not initiated")
@@ -127,7 +127,7 @@ class TestTask(ObjectModel):
             self._change_state(TaskState.BUILT)
 
     def try_to_config(self, config_json: str) -> None:
-        with self.perform_operation():
+        with self.perform_operation_non_blocking():
             with self.get_lock().read():
                 if self._state != TaskState.BUILT:
                     raise ValueError(f"Task {self._task_id} not built")
@@ -136,7 +136,7 @@ class TestTask(ObjectModel):
             self._change_state(TaskState.READY)
 
     def try_to_reconfig_task(self) -> None:
-        with self.perform_operation():
+        with self._op_lock:
             with self.get_lock().read():
                 state = self._state
                 if state != TaskState.READY or state != TaskState.SCHEDULED:
@@ -148,7 +148,7 @@ class TestTask(ObjectModel):
             self._change_state(TaskState.BUILT)
 
     def try_to_schedule_task(self) -> None:
-        with self.perform_operation():
+        with self.perform_operation_non_blocking():
             with self.get_lock().read():
                 if self._state != TaskState.READY:
                     raise ValueError(f"Task {self._task_id} not ready")
@@ -156,7 +156,7 @@ class TestTask(ObjectModel):
             self._change_state(TaskState.SCHEDULED)
 
     def try_to_stop_task(self) -> None:
-        with self.perform_operation():
+        with self._op_lock:
             with self.get_lock().read():
                 if self._state != TaskState.SCHEDULED:
                     raise ValueError(f"Task {self._task_id} not scheduled")
@@ -165,9 +165,11 @@ class TestTask(ObjectModel):
             self._change_state(TaskState.READY)
 
     def get_full_task_query(self) -> TestTaskFullQuery:
-        with self.perform_operation():
+        with self._op_lock:
             with self.get_lock().read():
-                return TestTaskFullQuery(minimal_query=TestTaskMinimalQuery(task_id=self._task_id,
+                return TestTaskFullQuery(
+                    result="",
+                    minimal_query=TestTaskMinimalQuery(task_id=self._task_id,
                                                                             name=self._task_name,
                                                                             description=self._task_description,
                                                                             module_name=self._module_name,
@@ -414,13 +416,13 @@ class TestTaskMgr(MgrModel):
     # API methods
     # ------------------------------
 
-    def api_create_task(self, task_create_request: TaskCreateRequest) -> CommandResult:
+    def api_create_task(self, task_create_request: TaskCreateRequest) -> TaskCreateResult:
         try:
             task_id = self.create_task(task_create_request.module_name, task_create_request.name,
                                        task_create_request.description)
-            return CommandResult(result="", task_id=task_id)
+            return TaskCreateResult(result="", task_id=task_id)
         except Exception as e:
-            return CommandResult(result=f"Error while creating task: {e}", task_id=-1)
+            return TaskCreateResult(result=f"Error while creating task: {e}", task_id=-1)
 
     def api_stop_task(self, op_request: TaskOperationRequest) -> CommandResult:
         return TestTaskMgr._prepare_simple_command_response(lambda: self.stop_task(op_request.task_id))
@@ -489,8 +491,16 @@ class TestTaskMgr(MgrModel):
                                       result="")
 
     def api_get_task_query(self, op_request: TaskOperationRequest) -> TestTaskFullQuery:
-        task = self._validate_and_get_task(op_request.task_id)
-        return task.get_full_task_query()
+        try:
+            task = self._validate_and_get_task(op_request.task_id)
+            return task.get_full_task_query()
+        except Exception as e:
+            return TestTaskFullQuery(result=f"Error while getting task query: {e}", minimal_query=TestTaskMinimalQuery(
+                task_id=-1, name="", description="", module_name="", task_state=TaskState.UNINITIATED
+            ),
+                                     worker_init_config=None, manager_init_config=None, worker_build_config="",
+                                     manager_build_config="", worker_config="", manager_config="")
+
 
     # ------------------------------
     # Private methods

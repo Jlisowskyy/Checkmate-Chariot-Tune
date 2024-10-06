@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from Manager.manager_main import Manager
-from Tests.ManagerPyTest.test_validators import validate_post_getter, validate_get_getter
+from Tests.ManagerPyTest.validators import validate_post_getter, validate_get_getter
 
 
 def test_getters() -> None:

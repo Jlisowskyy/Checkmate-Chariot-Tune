@@ -15,7 +15,7 @@ source "${RUNNER_SCRIPT_DIR}/Regression/base_regression.bash"
 helpers_pretty_chapter "Unit Test (PyTest) - Manager"
 
 source "${RUNNER_VENV_DIR}"
-pytest
+"${RUNNER_SCRIPT_DIR}/pytest_runner.bash"
 
 # run regression
 
