@@ -2,7 +2,6 @@ import json
 from collections.abc import Callable
 from threading import Lock
 
-from Manager.Api.Orchestrator import init_task
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.GlobalModels import CommandResult
 from Models.OrchestratorModels import TaskCreateRequest, TaskOperationRequest, TaskOpRequestWithConfig, \
@@ -420,24 +419,31 @@ class TestTaskMgr(MgrModel):
                                        task_create_request.description)
             return TaskCreateResult(result="", task_id=task_id)
         except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while creating task: {e}", LogLevel.LOW_FREQ)
+
             return TaskCreateResult(result=f"Error while creating task: {e}", task_id=-1)
 
     def api_stop_task(self, op_request: TaskOperationRequest) -> CommandResult:
-        return TestTaskMgr._prepare_simple_command_response(lambda: self.stop_task(op_request.task_id))
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.stop_task(op_request.task_id), "stop_task",
+                                                            LogLevel.LOW_FREQ)
 
     def api_build_task(self, op_request: TaskOpRequestWithConfig) -> CommandResult:
         return TestTaskMgr._prepare_simple_command_response(
-            lambda: self.build_task(op_request.task_id, op_request.config))
+            lambda: self.build_task(op_request.task_id, op_request.config), "build_task", LogLevel.LOW_FREQ)
 
     def api_config_task(self, op_request: TaskOpRequestWithConfig) -> CommandResult:
         return TestTaskMgr._prepare_simple_command_response(
-            lambda: self.config_task(op_request.task_id, op_request.config))
+            lambda: self.config_task(op_request.task_id, op_request.config), "config_task", LogLevel.LOW_FREQ)
 
     def api_reconfig_task(self, op_request: TaskOperationRequest) -> CommandResult:
-        return TestTaskMgr._prepare_simple_command_response(lambda: self.reconfig_task(op_request.task_id))
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.reconfig_task(op_request.task_id),
+                                                            "reconfig_task", LogLevel.LOW_FREQ)
 
     def api_schedule_task(self, op_request: TaskOperationRequest) -> CommandResult:
-        return TestTaskMgr._prepare_simple_command_response(lambda: self.schedule_task(op_request.task_id))
+        return TestTaskMgr._prepare_simple_command_response(lambda: self.schedule_task(op_request.task_id),
+                                                            "schedule_task", LogLevel.LOW_FREQ)
 
     def api_init_task(self, op_request: TaskInitRequest) -> TaskInitResponse:
         try:
@@ -446,6 +452,10 @@ class TestTaskMgr(MgrModel):
                                     manager_init_spec=lacking_manager_module,
                                     result="")
         except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while initializing task: {e}", LogLevel.LOW_FREQ)
+
             return TaskInitResponse(worker_init_spec=None, manager_init_spec=None,
                                     result=f"Error while initializing task: {e}")
 
@@ -461,55 +471,80 @@ class TestTaskMgr(MgrModel):
         return TaskMinimalQueryAllResponse(queries=queries)
 
     def api_get_task_config_spec(self, op_request: TaskOperationRequest) -> TaskConfigSpecResponse:
-        task = self._validate_and_get_task(op_request.task_id)
+        try:
+            task = self._validate_and_get_task(op_request.task_id)
 
-        if task.get_task_state() == TaskState.UNINITIATED:
-            return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
-                                          result="Task not initiated")
+            if task.get_task_state() == TaskState.UNINITIATED:
+                return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
+                                              result="Task not initiated")
 
-        with task.get_lock().read():
-            worker_config_spec = task.get_worker_config_spec_unguarded()
-            manager_config_spec = task.get_manager_config_spec_unguarded()
+            with task.get_lock().read():
+                worker_config_spec = task.get_worker_config_spec_unguarded()
+                manager_config_spec = task.get_manager_config_spec_unguarded()
 
-        return TaskConfigSpecResponse(worker_config_spec=worker_config_spec, manager_config_spec=manager_config_spec,
-                                      result="")
+            return TaskConfigSpecResponse(worker_config_spec=worker_config_spec,
+                                          manager_config_spec=manager_config_spec,
+                                          result="")
+        except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while getting task config spec: {e}", LogLevel.LOW_FREQ)
+
+            return TaskConfigSpecResponse(worker_config_spec=[], manager_config_spec=[],
+                                          result=f"Error while getting task config spec: {e}")
 
     def api_get_task_build_spec(self, op_request: TaskOperationRequest) -> TaskConfigSpecResponse:
-        task = self._validate_and_get_task(op_request.task_id)
+        try:
+            task = self._validate_and_get_task(op_request.task_id)
 
-        if task.get_task_state() == TaskState.UNINITIATED:
-            return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
-                                          result="Task not initiated")
+            if task.get_task_state() == TaskState.UNINITIATED:
+                return TaskConfigSpecResponse(worker_config_spec=None, manager_config_spec=None,
+                                              result="Task not initiated")
 
-        with task.get_lock().read():
-            worker_build_spec = task.get_worker_build_spec_unguarded()
-            manager_build_spec = task.get_manager_build_spec_unguarded()
+            with task.get_lock().read():
+                worker_build_spec = task.get_worker_build_spec_unguarded()
+                manager_build_spec = task.get_manager_build_spec_unguarded()
 
-        return TaskConfigSpecResponse(worker_config_spec=worker_build_spec, manager_config_spec=manager_build_spec,
-                                      result="")
+            return TaskConfigSpecResponse(worker_config_spec=worker_build_spec, manager_config_spec=manager_build_spec,
+                                          result="")
+        except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while getting task build spec: {e}", LogLevel.LOW_FREQ)
+
+            return TaskConfigSpecResponse(worker_config_spec=[], manager_config_spec=[],
+                                          result=f"Error while getting task build spec: {e}")
 
     def api_get_task_query(self, op_request: TaskOperationRequest) -> TestTaskFullQuery:
         try:
             task = self._validate_and_get_task(op_request.task_id)
             return task.get_full_task_query()
         except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while getting task query: {e}", LogLevel.LOW_FREQ)
+
             return TestTaskFullQuery(result=f"Error while getting task query: {e}", minimal_query=TestTaskMinimalQuery(
                 task_id=-1, name="", description="", module_name="", task_state=TaskState.UNINITIATED
             ),
                                      worker_init_config=None, manager_init_config=None, worker_build_config="",
                                      manager_build_config="", worker_config="", manager_config="")
 
-
     # ------------------------------
     # Private methods
     # ------------------------------
 
     @staticmethod
-    def _prepare_simple_command_response(action: Callable[[], None]) -> CommandResult:
+    def _prepare_simple_command_response(action: Callable[[], None], endpoint_name: str,
+                                         log_level: LogLevel) -> CommandResult:
         try:
             action()
             return CommandResult(result="")
         except Exception as e:
+
+            Logger().save_error_to_journal(e)
+            Logger().log_error(f"Error while performing action \"{endpoint_name}\": {e}", log_level)
+
             return CommandResult(result=f"Error while performing action: {e}")
 
     def _validate_task_exists_unlocked(self, task_id: int) -> None:

@@ -22,6 +22,11 @@ if missing_validators:
     raise KeyError(f"UiTypeValidatorDict missing validators for: {missing_validators}")
 
 
+def validate_obj_by_ui_type(ui_type: UiType, obj: any) -> None:
+    if ui_type not in UiTypeValidatorDict:
+        raise ValueError(f"Invalid UiType {ui_type}")
+    UiTypeValidatorDict[ui_type](obj)
+
 # ------------------------------
 # Config Spec Element
 # ------------------------------
@@ -35,7 +40,8 @@ def build_config_spec_element(
         default_value: default_value_type,
         is_optional: bool
 ) -> ConfigSpecElement:
-    if default_value is not None and not isinstance(default_value, ui_type.value):
+    if default_value is not None:
+        validate_obj_by_ui_type(ui_type, default_value)
         raise ValueError(f"Default value type must be {ui_type.value}, got {type(default_value)}")
 
     return ConfigSpecElement(name=get_typed_name(submodule_name, variable_name),

@@ -6,12 +6,15 @@ from Modules.ModuleHelpers import extract_submodule_type, validate_submodule_spe
     extract_submodule_variable_name
 
 
+# TODO: REWORK INIT TO SAME MANNER
+
 # Note: for submodule config name should be same as constructor parameter name
 class ModuleBuilder(ABC):
     # ------------------------------
     # Class fields
     # ------------------------------
 
+    # Names should be simple manner: {submodule_type}.{variable_name}
     _submodules: list[ConfigSpecElement]
     _submodule_name: str
 
@@ -33,7 +36,7 @@ class ModuleBuilder(ABC):
             json_config,
             name_prefix,
             lambda prefix, builder, _: builder.get_next_submodule_needed(json_config, prefix),
-            lambda _, conf: conf
+            ModuleBuilder._prepare_init_spec
         )
 
 
@@ -93,25 +96,26 @@ class ModuleBuilder(ABC):
         from Modules.SubModuleMgr import SubModuleMgr
 
         for submodule in self._submodules:
-            submodule_full_path = f"{name_prefix}.{submodule.name}" if name_prefix != "" else submodule.name
+            submodule_type = extract_submodule_type(submodule.name)
+            var_name = extract_submodule_variable_name(submodule.name)
+
+            submodule_full_path = f"{submodule_type}.{name_prefix}.{var_name}" if name_prefix != "" else submodule.name
 
             if submodule_full_path in json_config:
                 module_names = json_config[submodule_full_path]
 
                 validate_submodule_spec_args(module_names, UiType[submodule.ui_type])
 
-                submodule_type = extract_submodule_type(submodule.name)
                 for module_name in module_names:
                     builder = SubModuleMgr().get_submodule(submodule_type, module_name)
 
-                    var_name = extract_submodule_variable_name(submodule.name)
-                    path_prefix = f"{name_prefix}.{var_name}"
-                    result = on_hit(path_prefix, builder, submodule)
+                    next_name_prefix = f"{name_prefix}.{var_name}" if name_prefix != "" else var_name
+                    result = on_hit(next_name_prefix, builder, submodule)
 
                     if result is not None:
                         return result
             else:
-                result = on_miss(submodule.name, submodule)
+                result = on_miss(name_prefix, submodule)
 
                 if result is not None:
                     return result
@@ -119,8 +123,18 @@ class ModuleBuilder(ABC):
         return None
 
     @staticmethod
-    def _missing_config_spec(name: str, conf: ConfigSpecElement) -> None:
-        raise ValueError(f"Missing json entry for submodule in path: {name} and spec: {conf}")
+    def _missing_config_spec(prefix: str, conf: ConfigSpecElement) -> None:
+        raise ValueError(f"Missing json entry for submodule in path: {prefix} and spec: {conf}")
+
+    @staticmethod
+    def _prepare_init_spec(prefix: str, conf: ConfigSpecElement) -> ConfigSpecElement:
+        submodule_type = extract_submodule_type(conf.name)
+        var_name = extract_submodule_variable_name(conf.name)
+        updated_name = f"{submodule_type}.{prefix}.{var_name}" if prefix != "" else f"{submodule_type}.{var_name}"
+
+        copied_conf = conf.model_copy(deep=True, update={"name": updated_name})
+
+        return copied_conf
 
     @staticmethod
     def _add_built_module(

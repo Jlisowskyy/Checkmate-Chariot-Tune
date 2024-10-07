@@ -141,8 +141,29 @@ def validate_init(client: TestClient, task_id: int) -> None:
 
     assert retries > 0
 
+    # Try to init a task that is already initialized
+    response = validate_post_payload(client, "/orchestrator/task/init", payload)
+    assert response.json()["result"] != ""
+
+def validate_specs(client: TestClient, task_id: int) -> None:
+    response = validate_post_payload(client, "/orchestrator/task/config/spec",
+                                     {
+                                         "task_id": task_id
+                                     })
+
+    assert response.json()["result"] == ""
+
+    response = validate_post_payload(client, "/orchestrator/task/build/spec",
+                                     {
+                                         "task_id": task_id
+                                     })
+
+    assert response.json()["result"] == ""
+
+
 def test_checkmate_chariot_task() -> None:
     with TestClient(Manager) as client:
         task_id = validate_task_create(client)
         validate_full_query(client, task_id)
         validate_init(client, task_id)
+        validate_specs(client, task_id)

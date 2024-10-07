@@ -43,11 +43,11 @@ async def init_task(task: TaskInitRequest) -> TaskInitResponse:
 async def query_task_minimal() -> TaskMinimalQueryAllResponse:
     return ManagerComponents().get_test_task_mgr().api_minimal_query_all_tasks()
 
-@router.post("/orchestrator/task/task/config-spec", tags=["orchestrator"])
+@router.post("/orchestrator/task/config/spec", tags=["orchestrator"])
 async def query_task_config_spec(task: TaskOperationRequest) -> TaskConfigSpecResponse:
     return ManagerComponents().get_test_task_mgr().api_get_task_config_spec(task)
 
-@router.post("/orchestrator/task/task/build-spec", tags=["orchestrator"])
+@router.post("/orchestrator/task/build/spec", tags=["orchestrator"])
 async def query_task_build_spec(task: TaskOperationRequest) -> TaskConfigSpecResponse:
     return ManagerComponents().get_test_task_mgr().api_get_task_build_spec(task)
 

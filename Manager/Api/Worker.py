@@ -7,6 +7,7 @@ from Utils.Logger import Logger, LogLevel
 
 router = APIRouter()
 
+# TODO: REWORK THIS
 
 @router.post("/worker/register", tags=["worker"])
 async def register(worker: WorkerModel) -> WorkerRegistration:

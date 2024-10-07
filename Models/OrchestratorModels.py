@@ -4,11 +4,11 @@ from typing import List, Dict
 from Models.GlobalModels import *
 
 class UiType(Enum):
-    StringList = List[str]
+    StringList = list[str]
     String = str
-    StringStringDict = Dict[str, str]
-    StringIntPairDict = Dict[str, int]
-    StringDictStringStringDict = Dict[str, Dict[str, str]]
+    StringStringDict = dict[str, str]
+    StringIntPairDict = dict[str, int]
+    StringDictStringStringDict = dict[str, dict[str, str]]
 
 
 default_value_type = str | List[str] | Dict[str, str] | Dict[str, int] | None

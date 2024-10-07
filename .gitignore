@@ -13,3 +13,5 @@ Worker/Models
 log.txt
 *.log
 Tests/Regression/logs
+*/error_journal.txt
+error_journal.txt

@@ -14,7 +14,7 @@ def startup():
     settings = SettingsLoader(ManagerSettings, SETTINGS_PATH).get_settings()
 
     # init logger
-    Logger(settings.logger_path, settings.log_std_out, LogLevel(settings.log_level))
+    Logger(settings.logger_path, settings.log_std_out, LogLevel(settings.log_level), settings.error_journal_path)
 
     SettingsLoader().add_event(update_logger_freq)
     SettingsLoader().add_event(update_build_dir)
