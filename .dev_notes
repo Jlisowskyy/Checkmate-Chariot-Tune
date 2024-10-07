@@ -11,6 +11,7 @@ DISTANT TODO:
 - refactor module builders to not create dicts for each submodule
 - individual task hardening
 - priority queue in tasks
+- add remove task
 
 
 BUGS:

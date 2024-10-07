@@ -18,5 +18,5 @@ class NonBuildableModule(Module, ABC):
     async def build_module(self) -> None:
         return
 
-    async def configure_build(self, json: any, prefix: str) -> None:
+    async def configure_build(self, json_parsed: any, prefix: str = "") -> None:
         return

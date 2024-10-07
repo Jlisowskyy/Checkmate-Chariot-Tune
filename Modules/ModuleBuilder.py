@@ -93,7 +93,7 @@ class ModuleBuilder(ABC):
         from Modules.SubModuleMgr import SubModuleMgr
 
         for submodule in self._submodules:
-            submodule_full_path = f"{name_prefix}.{submodule.name}"
+            submodule_full_path = f"{name_prefix}.{submodule.name}" if name_prefix != "" else submodule.name
 
             if submodule_full_path in json_config:
                 module_names = json_config[submodule_full_path]

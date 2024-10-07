@@ -2,11 +2,12 @@ import json
 from collections.abc import Callable
 from threading import Lock
 
+from Manager.Api.Orchestrator import init_task
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.GlobalModels import CommandResult
 from Models.OrchestratorModels import TaskCreateRequest, TaskOperationRequest, TaskOpRequestWithConfig, \
     ConfigSpecElement, TaskInitResponse, TaskState, TaskMinimalQueryAllResponse, TestTaskMinimalQuery, \
-    TaskConfigSpecResponse, TestTaskFullQuery, TaskCreateResult
+    TaskConfigSpecResponse, TestTaskFullQuery, TaskCreateResult, TaskInitRequest
 from Modules.ManagerTestModule.BaseManagerTestModule import BaseManagerTestModule
 from Modules.ModuleBuilder import ModuleBuilder
 from Modules.ModuleMgr import ModuleMgr
@@ -86,18 +87,9 @@ class TestTask(ObjectModel):
     # State changing methods
     # ------------------------------
 
-    def try_to_init(self, submodules_json: str) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
-        submodules_parsed: dict[str, dict[str, list[str]]] = json.loads(submodules_json)
-        validate_dict_str(submodules_parsed)
-
-        if "worker_init" not in submodules_parsed or "manager_init" not in submodules_parsed:
-            raise ValueError("\"worker_init\" and \"manager_init\" keys must be present in submodules_json")
-
-        validate_dict_str_list_str(submodules_parsed["worker_init"])
-        validate_dict_str_list_str(submodules_parsed["manager_init"])
-
-        worker_init = submodules_parsed["worker_init"]
-        manager_init = submodules_parsed["manager_init"]
+    def try_to_init(self, config: TaskInitRequest) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
+        worker_init = config.worker_init
+        manager_init = config.manager_init
 
         with self.perform_operation_non_blocking():
             with self.get_lock().read():
@@ -354,6 +346,7 @@ class TestTaskMgr(MgrModel):
     # ------------------------------
 
     _task_container: dict[int, TestTask]
+    _name_set: set[str]
 
     # ------------------------------
     # Class creation
@@ -362,6 +355,7 @@ class TestTaskMgr(MgrModel):
     def __init__(self) -> None:
         super().__init__()
         self._task_container = dict[int, TestTask]()
+        self._name_set = set[str]()
 
         Logger().log_info("Test Task Manager correctly initialized", LogLevel.LOW_FREQ)
 
@@ -373,16 +367,20 @@ class TestTaskMgr(MgrModel):
     # ------------------------------
 
     def create_task(self, module_name: str, name: str, description: str) -> int:
+        if name in self._name_set:
+            raise ValueError(f"Task with name {name} already exists")
+
         new_task = TestTask(module_name, name, description)
+        self._name_set.add(name)
 
         with new_task.get_lock().write():
             self._task_container[new_task.get_task_id()] = new_task
 
         return new_task.get_task_id()
 
-    def init_task(self, task_id: int, submodules_json: str) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
-        task = self._validate_and_get_task(task_id)
-        return task.try_to_init(submodules_json)
+    def init_task(self, init_request: TaskInitRequest) -> [ConfigSpecElement | None, ConfigSpecElement | None]:
+        task = self._validate_and_get_task(init_request.task_id)
+        return task.try_to_init(init_request)
 
     def stop_task(self, task_id: int) -> None:
         task = self._validate_and_get_task(task_id)
@@ -441,14 +439,14 @@ class TestTaskMgr(MgrModel):
     def api_schedule_task(self, op_request: TaskOperationRequest) -> CommandResult:
         return TestTaskMgr._prepare_simple_command_response(lambda: self.schedule_task(op_request.task_id))
 
-    def api_init_task(self, op_request: TaskOpRequestWithConfig) -> TaskInitResponse:
+    def api_init_task(self, op_request: TaskInitRequest) -> TaskInitResponse:
         try:
-            lacking_worker_module, lacking_manager_module = self.init_task(op_request.task_id, op_request.config)
-            return TaskInitResponse(worker_config_spec=lacking_worker_module,
-                                    manager_config_spec=lacking_manager_module,
+            lacking_worker_module, lacking_manager_module = self.init_task(op_request)
+            return TaskInitResponse(worker_init_spec=lacking_worker_module,
+                                    manager_init_spec=lacking_manager_module,
                                     result="")
         except Exception as e:
-            return TaskInitResponse(worker_config_spec=None, manager_config_spec=None,
+            return TaskInitResponse(worker_init_spec=None, manager_init_spec=None,
                                     result=f"Error while initializing task: {e}")
 
     def api_minimal_query_all_tasks(self) -> TaskMinimalQueryAllResponse:

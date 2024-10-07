@@ -22,12 +22,11 @@ class SubModuleMgr(metaclass=GlobalObj):
     # Class interaction
     # ------------------------------
 
-    def get_all_submodules(self) -> list[[str, list[str]]]:
-        rv: list[[str, list[str]]] = []
+    def get_all_submodules(self) -> dict[str, list[str]]:
+        rv: dict[str, list[str]] = {}
 
         for submodule_type_name in SubModulesRegistry.SubModulesBuilders.keys():
-            rv.append(
-                [submodule_type_name, list(SubModulesRegistry.SubModulesBuilders[submodule_type_name].keys())])
+            rv[submodule_type_name] = list(SubModulesRegistry.SubModulesBuilders[submodule_type_name].keys())
 
         return rv
 

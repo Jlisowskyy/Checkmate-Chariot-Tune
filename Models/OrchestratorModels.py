@@ -63,8 +63,8 @@ class TaskCreateResult(BaseModel):
 
 
 class TaskInitResponse(BaseModel):
-    worker_config_spec: ConfigSpecElement | None
-    manager_config_spec: ConfigSpecElement | None
+    worker_init_spec: ConfigSpecElement | None
+    manager_init_spec: ConfigSpecElement | None
     result: str
 
 
@@ -72,6 +72,10 @@ class TaskOpRequestWithConfig(BaseModel):
     task_id: int
     config: str
 
+class TaskInitRequest(BaseModel):
+    task_id: int
+    worker_init: Dict[str, List[str]]
+    manager_init: Dict[str, List[str]]
 
 class TaskOperationRequest(BaseModel):
     task_id: int
@@ -105,3 +109,6 @@ class TestTaskFullQuery(BaseModel):
 
 class ModuleQueryResponse(BaseModel):
     modules: List[str]
+
+class SubModuleQueryResponse(BaseModel):
+    submodules: Dict[str, List[str]]

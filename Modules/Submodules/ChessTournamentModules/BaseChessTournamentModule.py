@@ -55,7 +55,7 @@ class BaseChessTournamentModule(BuildableModule, ABC):
     # Basic Methods
     # ------------------------------
 
-    async def configure_module(self, json_parsed: any, prefix: str) -> None:
+    async def configure_module(self, json_parsed: any, prefix: str = "") -> None:
         Logger().log_info(f"Loading config for tournament: {self._module_name}", LogLevel.MEDIUM_FREQ)
 
         try:

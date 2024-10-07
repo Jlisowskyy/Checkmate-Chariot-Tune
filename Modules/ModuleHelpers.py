@@ -40,7 +40,7 @@ def build_config_spec_element(
 
     return ConfigSpecElement(name=get_typed_name(submodule_name, variable_name),
                              description=description,
-                             ui_type=ui_type,
+                             ui_type=ui_type.name,
                              default_value=default_value,
                              is_optional=is_optional)
 
@@ -58,7 +58,7 @@ def build_submodule_spec_element(
     return ConfigSpecElement(
         name=get_typed_name(submodule_type, variable_name),
         description=description,
-        ui_type=ui_type,
+        ui_type=ui_type.name,
         default_value=default_value,
         is_optional=False
     )

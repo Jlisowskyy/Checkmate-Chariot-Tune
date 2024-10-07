@@ -10,3 +10,5 @@ def test_getters() -> None:
         assert response.json() == {'queries': []}
 
         validate_get_getter(client, "/orchestrator/modules/get/available")
+
+        validate_get_getter(client, "/orchestrator/submodules/get/active")

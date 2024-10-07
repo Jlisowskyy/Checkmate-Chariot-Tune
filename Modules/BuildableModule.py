@@ -56,33 +56,33 @@ class BuildableModule(Module, ABC):
             raise e
         Logger().log_info(f"Module with name: {self._module_name} built correctly!", LogLevel.MEDIUM_FREQ)
 
-    async def configure_build(self, json: any, prefix: str) -> None:
+    async def configure_build(self, json_parsed: any, prefix: str) -> None:
         Logger().log_info(f"Configuring build for module: {self._module_name}...", LogLevel.MEDIUM_FREQ)
         exec_path_name = get_config_prefixed_name(prefix, self._module_name, "exec_path")
 
         try:
-            if "build_dir" not in json:
+            if "build_dir" not in json_parsed:
                 raise Exception("No build_dir found in config")
 
-            validate_string(json["build_dir"])
-            validate_dir(json["build_dir"])
+            validate_string(json_parsed["build_dir"])
+            validate_dir(json_parsed["build_dir"])
 
-            self._build_dir = json["build_dir"]
+            self._build_dir = json_parsed["build_dir"]
 
-            await self._configure_build_internal(json, prefix)
-            validate_dict_str(json)
+            await self._configure_build_internal(json_parsed, prefix)
+            validate_dict_str(json_parsed)
 
-            if exec_path_name not in json:
+            if exec_path_name not in json_parsed:
                 raise Exception("No exec_path found in config")
 
-            validate_string(json[exec_path_name])
+            validate_string(json_parsed[exec_path_name])
 
         except Exception as e:
             Logger().log_error(f"Failed to configure build for module: {self._module_name} with error: {e}",
                                LogLevel.MEDIUM_FREQ)
             raise e
 
-        self._expected_exec_path = json["exec_path"]
+        self._expected_exec_path = json_parsed["exec_path"]
 
         self._is_build_configured = True
 

@@ -39,8 +39,8 @@ class BaseManagerChessModule(BaseManagerTestModule):
     async def build_module(self) -> None:
         await self._chess_training_module.build_module()
 
-    async def configure_build(self, json: any, prefix: str) -> None:
-        await self._chess_training_module.configure_build(json, prefix)
+    async def configure_build(self, json_parsed: any, prefix: str) -> None:
+        await self._chess_training_module.configure_build(json_parsed, prefix)
 
     async def configure_module(self, json_parsed: str, prefix: str) -> None:
         await self._chess_training_module.configure_module(json_parsed, prefix)

@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from Manager.ManagerLib.ManagerComponents import ManagerComponents
 from Models.OrchestratorModels import *
 from Modules.ModuleMgr import ModuleMgr
+from Modules.SubModuleMgr import SubModuleMgr
 
 router = APIRouter()
 
@@ -35,7 +36,7 @@ async def schedule_task(task: TaskOperationRequest) -> CommandResult:
     return ManagerComponents().get_test_task_mgr().api_schedule_task(task)
 
 @router.post("/orchestrator/task/init", tags=["orchestrator"])
-async def init_task(task: TaskOpRequestWithConfig) -> TaskInitResponse:
+async def init_task(task: TaskInitRequest) -> TaskInitResponse:
     return ManagerComponents().get_test_task_mgr().api_init_task(task)
 
 @router.post("/orchestrator/task/query/minimal", tags=["orchestrator"])
@@ -59,6 +60,12 @@ async def query_available_modules() -> ModuleQueryResponse:
     modules = ModuleMgr().get_all_modules()
 
     return ModuleQueryResponse(modules=modules)
+
+@router.get("/orchestrator/submodules/get/active", tags=["orchestrator"])
+async def query_active_submodules() -> SubModuleQueryResponse:
+    modules = SubModuleMgr().get_all_submodules()
+
+    return SubModuleQueryResponse(submodules=modules)
 
 # ------------------------------
 # Worker API

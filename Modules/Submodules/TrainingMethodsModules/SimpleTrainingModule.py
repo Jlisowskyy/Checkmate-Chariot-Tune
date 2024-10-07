@@ -47,7 +47,7 @@ class SimpleTrainingModule(BaseTrainingMethodModule, NonBuildableModule):
     async def harden_model(self) -> None:
         return
 
-    async def configure_module(self, json_parsed: str) -> None:
+    async def configure_module(self, json_parsed: any, prefix="") -> None:
         return
 
 
@@ -56,6 +56,7 @@ class SimpleTrainingModule(BaseTrainingMethodModule, NonBuildableModule):
 # ------------------------------
 
 class SimpleTrainingMethodBuilder(ModuleBuilder):
+
     # ------------------------------
     # Class creation
     # ------------------------------
@@ -67,10 +68,8 @@ class SimpleTrainingMethodBuilder(ModuleBuilder):
     # Abstract methods implementation
     # ------------------------------
 
-    def _get_config_spec_internal_chess_tournament(self, prefix: str) -> list[ConfigSpecElement]:
-        return [
-
-        ]
+    def _get_config_spec_internal(self, prefix: str) -> list[ConfigSpecElement]:
+        return []
 
     def build(self, json_config: dict[str, list[str]], name_prefix: str = "") -> any:
         return SimpleTrainingModule()
